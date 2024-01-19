@@ -1,0 +1,14 @@
+import_feature "ant.render"
+
+system "outline_system"
+    .implement "outline.lua"
+
+component "outline_info".type "lua"
+
+policy "outline_info"
+    .component "outline_info"
+
+component "outline_queue"
+policy "outline_queue"
+    .include_policy "ant.render|render_queue"
+    .component   "outline_queue"

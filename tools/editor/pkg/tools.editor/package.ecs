@@ -1,0 +1,27 @@
+import_feature "ant.polyline"
+import_feature "ant.widget"
+import_feature "ant.timeline"
+import_feature "ant.shadow_bounding"
+import_feature "ant.shadow_bounding|scene_bounding"
+
+system "init_system"
+    .implement "init_system.lua"
+
+system "gizmo_system"
+    .implement "gizmo_system.lua"
+
+system "input_system"
+    .implement "input_system.lua"
+
+system "gui_system"
+    .implement "gui_system.lua"
+
+system "grid_brush_system"
+    .implement "grid_brush_system.lua"
+
+system "daynight_ui_system"
+    .implement "daynight_ui.lua"
+
+import "camera/camera.ecs"
+
+import "pipeline.ecs"

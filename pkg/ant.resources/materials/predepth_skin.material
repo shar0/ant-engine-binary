@@ -1,0 +1,14 @@
+fx:
+  depth: /pkg/ant.resources/shaders/depth/vs_depth.sc
+  macros:
+    "GPU_SKINNING=1"
+  varyings:
+    a_position: vec3
+    a_indices:  ivec4
+    a_weight:   vec4
+  setting: /pkg/ant.resources/settings/nolighting.ant
+state:
+  ALPHA_REF: 0
+  CULL: CCW
+  MSAA: true
+  WRITE_MASK: Z

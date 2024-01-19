@@ -1,0 +1,21 @@
+fx:
+  cs: /pkg/ant.resources/shaders/postprocess/ssao/cs_ssao.sc
+properties:
+  u_ssao_param:   {0, 0, 0, 0}  #which chain level, inverse highlight value, threshold
+  u_ssao_param2:  {0, 0, 0, 0}
+  u_ssao_param3:  {0, 0, 0, 0}
+  u_ssao_param4:  {0, 0, 0, 0}
+
+  u_ssct_param:   {0, 0, 0, 0}
+  u_ssct_param2:  {0, 0, 0, 0}
+  u_ssct_param3:  {0, 0, 0, 0}
+  u_ssct_screen_from_view_mat: {1.0, 0.0, 0.0, 0.0,   0.0, 1.0, 0.0, 0.0,   0.0, 0.0, 1.0, 0.0,   0.0, 0.0, 0.0, 1.0}
+
+  s_depth:
+    stage: 0
+    texture: /pkg/ant.resources/textures/black.texture
+  s_ssao_result:
+    stage: 1
+    mip: 0
+    access: "w"
+    image: /pkg/ant.resources/textures/black.texture

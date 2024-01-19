@@ -1,0 +1,39 @@
+import_feature "ant.render"
+
+system "efk_system"
+    .implement "efk.lua"
+
+component "efk_queue"
+
+component "efk_object"
+    .type "c"
+    .field "visible_idx:int"
+    .field "handle:int"
+    .field "worldmat:userdata|math_t"
+    .implement "efk_object.lua"
+
+component "efk_visible" -- view_visible & efk
+
+component "efk_hitch"
+    .type "c"
+    .field "handle:int"
+    .field "hitchmat:userdata"
+    .implement "efk_object.lua"
+
+component "efk_hitch_backbuffer"
+    .type "c"
+    .field "handle:int"
+    .field "hitchmat:userdata"
+    .implement "efk_object.lua"
+
+component "efk_hitch_tag"
+
+policy "efk_queue"
+    .include_policy "ant.render|render_target"
+    .component "queue_name"
+component "efk".type "lua"
+
+policy "efk"
+    .component "efk"
+    .component_opt "efk_object"
+    .component "visible_state"

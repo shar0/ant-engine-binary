@@ -1,0 +1,2 @@
+system "default_camera_controller"
+    .implement "camera_controller.lua"

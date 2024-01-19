@@ -1,0 +1,14 @@
+fx:
+    cs: /pkg/ant.resources/shaders/depth/cs_blur.sc
+properties:
+    s_image_input:
+        stage: 0
+        mip: 0
+        access: "r"
+        image: /pkg/ant.resources/textures/default.texture
+    s_image_output:
+        stage: 1
+        mip: 0
+        access: "w"
+        image: /pkg/ant.resources/textures/default.texture
+    u_blur_offset : {0.1, 0.0, 0.0, 0.0}

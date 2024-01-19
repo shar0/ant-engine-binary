@@ -1,0 +1,17 @@
+fx:
+  shader_type: PBR
+  fs_code: "void CUSTOM_FS(Varyings v, out FSOutput o){o.color=u_color;}"
+  setting:
+    lighting: off
+    position_only: true
+  varyings:
+    a_position: vec3
+properties:
+  u_color: {1, 1, 1, 1}
+state:
+  ALPHA_REF: 0
+  CULL: NONE
+  DEPTH_TEST: ALWAYS
+  MSAA: true
+  BLEND: ALPHA
+  WRITE_MASK: RGBA

@@ -1,0 +1,18 @@
+fx:
+    vs: /pkg/ant.resources/shaders/simple/quad/vs_simplequad.sc
+    fs: /pkg/ant.resources/shaders/simple/quad/fs_simplequad.sc
+    macros:
+        "POS_IN_RECT=1"
+    setting:
+        lighting: off
+        
+properties:
+    u_color: {1.0, 1.0, 1.0, 1.0}
+    s_tex:
+        stage: 0
+        texture: /pkg/ant.resources/textures/test/gamma_test.texture
+state:
+    ALPHA_REF: 0
+    CULL: NONE
+    DEPTH_TEST: ALWAYS
+    WRITE_MASK: RGBA

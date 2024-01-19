@@ -1,0 +1,17 @@
+pipeline "depth"
+    .stage "depth_resolve"
+    .stage "depth_mipmap"
+
+component "pre_depth_queue"
+policy "pre_depth_queue"
+    .include_policy "ant.render|render_queue"
+    .component   "pre_depth_queue"
+
+system "pre_depth_system"
+    .implement "depth/depth.lua"
+
+feature "scene_depth"
+    .import "depth/scene_depth.ecs"
+
+feature "depth_resolve"
+    .import "depth/depth_resolve.ecs"

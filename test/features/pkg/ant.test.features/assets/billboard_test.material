@@ -1,0 +1,19 @@
+fx:
+  fs: /pkg/ant.test.features/assets/fs_billboard.sc
+  vs: /pkg/ant.test.features/assets/vs_billboard.sc
+  macros:
+    "ALPHAMODE_OPAQUE=1"
+  setting:
+    lighting:off
+properties:
+  s_basecolor:
+    stage: 0
+    texture: /pkg/ant.resources/textures/black.texture
+
+state:
+  ALPHA_REF: 0
+  PT: TRISTRIP
+  CULL: CCW
+  DEPTH_TEST: GREATER
+  MSAA: true
+  WRITE_MASK: RGBAZ

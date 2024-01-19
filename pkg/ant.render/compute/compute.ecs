@@ -1,0 +1,10 @@
+import_feature "ant.asset"
+
+system "compute_system"
+    .implement "compute/compute.lua"
+
+component "dispatch".type "lua"
+
+policy "compute"
+    .include_policy "ant.asset|material"
+    .component "dispatch"

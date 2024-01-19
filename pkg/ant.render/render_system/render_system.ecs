@@ -1,0 +1,30 @@
+import_feature "ant.asset"
+import_feature "ant.scene"
+
+policy "render"
+    .include_policy "ant.render|render_object"
+    .include_policy "ant.scene|scene_object"
+    .include_policy "ant.scene|bounding"
+    .include_policy "ant.asset|material"
+    .component_opt "render_layer"
+    .component "mesh"
+    .component "visible_state"
+
+policy "simplerender"
+    .include_policy "ant.render|render_object"
+    .include_policy "ant.scene|scene_object"
+    .include_policy "ant.scene|bounding"
+    .include_policy "ant.asset|material"
+    .component "simplemesh"
+    .component_opt "render_layer"
+    .component "visible_state"
+
+system "submit_render_system"
+    .implement ":system.render"
+
+system "render_system"
+    .implement "render_system/render_system.lua"
+
+import "render_system/forward_render.ecs"
+import "render_system/cluster_render.ecs"
+import "render_system/render_object.ecs"

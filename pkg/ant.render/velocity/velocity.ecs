@@ -1,0 +1,7 @@
+system "velocity_system"
+    .implement "velocity/velocity.lua"
+
+component "velocity_queue"
+policy "velocity_queue"
+    .include_policy "ant.render|render_queue"
+    .component   "velocity_queue"

@@ -1,0 +1,16 @@
+system "lightmap_system"
+    .implement "lightmap/lightmap.lua"
+
+component "lightmapper"
+component "lightmap_result"
+    .type "lua"
+
+policy "lightmap_result"
+    .component "lightmapper"
+    .component "lightmap_result"
+
+component "lightmap"
+    .type "lua"
+
+policy "lightmap"
+    .component "lightmap"

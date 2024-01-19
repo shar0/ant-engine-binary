@@ -1,0 +1,35 @@
+system "ibl_system"
+    .implement "ibl/ibl.lua"
+
+component "irradiance_builder"
+component "prefilter_builder"
+component "panorama2cubemap_converter"
+component "prefilter".type "lua"
+component "LUT_builder"
+
+component "irradianceSH_builder".type "lua"
+component "irradianceSH_downsampler".type "lua"
+
+policy "irradianceSH_builder"
+    .component "irradianceSH_builder"
+
+policy "irradianceSH_downsample"
+    .component "irradianceSH_downsampler"
+
+policy "panorama2cubemap_converter"
+    .component "panorama2cubemap_converter"
+
+policy "prefilter"
+    .component "prefilter"
+
+policy "ibl"
+    .component "ibl"
+
+component "ibl"
+    .type "lua"
+
+component "ibl_changed"
+
+component "gen_mipmap".type "lua"
+policy "gen_mipmap"
+    .component "gen_mipmap"

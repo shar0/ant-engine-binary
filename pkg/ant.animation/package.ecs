@@ -1,0 +1,36 @@
+import_feature "ant.scene"
+
+pipeline "animation"
+    .stage "animation_state"
+    .stage "animation_playback"
+    .stage "animation_sample"
+
+policy "animation"
+    .include_policy "ant.scene|scene_object"
+    .component "animation"
+
+policy "skinning"
+    .include_policy "ant.scene|scene_object"
+    .component_opt "skinning"
+
+policy "slot"
+    .include_policy "ant.scene|scene_object"
+    .component "slot"
+    .component "animation"
+
+component "animation".type "lua"
+component "animation_changed"
+component "animation_playback"
+component "slot".type "lua"
+
+system "animation_system"
+    .implement "animation.lua"
+
+system "playback_system"
+    .implement "playback.lua"
+
+system "skinning_system"
+    .implement "skinning.lua"
+
+--system "slot_system"
+--    .implement "slot.lua"

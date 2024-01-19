@@ -1,0 +1,25 @@
+system "shadow_system"
+    .implement "shadow/shadow_system.lua"
+
+component "csm_directional_light"
+component "csm".type "lua"
+policy "csm_queue"
+    .component "csm"
+
+for i=1, 4 do
+    local cn = "csm" .. i .. "_queue"
+    component(cn)
+end
+
+component "cast_shadow"
+component "receive_shadow"
+
+component "clear_sm"
+
+feature "shadow_debug"
+    .import "shadow/shadow_debug.ecs"
+
+--import "shadow/shadow_debug.ecs"
+
+-- feature "omni_shadow"
+--     .import "shadow/omni_shadow.ecs"

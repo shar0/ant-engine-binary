@@ -1,0 +1,25 @@
+fx:
+  fs: /pkg/ant.resources/shaders/outline/fs_scaleoutline.sc
+  vs: /pkg/ant.resources/shaders/outline/vs_scaleoutline.sc
+  macros:
+    "GPU_SKINNING=1"
+    "WITHOUT_DEFAULT_UV=1"
+    "WITH_NORMAL_ATTRIB=1"
+  setting:
+    lighting: off
+properties:
+  u_outlinecolor: {0.8, 0.8, 0, 1}
+  u_outlinescale: {0.05, 0, 0, 0}
+state:
+  ALPHA_REF: 0
+  CULL: NONE
+  DEPTH_TEST: ALWAYS
+  MSAA: true
+  WRITE_MASK: RGBA
+stencil:
+  TEST: NOTEQUAL
+  FUNC_REF: 1
+  FUNC_RMASK: 0xff
+  OP_FAIL_S: KEEP
+  OP_FAIL_Z: INCR
+  OP_PASS_Z: INCR

@@ -1,0 +1,11 @@
+fx:
+  fs: /pkg/ant.resources/shaders/simple/quad/fs_simplequad.sc
+  setting:
+    lighting: off
+  vs: /pkg/ant.resources/shaders/simple/tex/vs_texquad.sc
+properties:
+  s_tex:
+    stage: 0
+    texture: /pkg/ant.resources/textures/black.texture
+  u_color: {1.0, 1.0, 1.0, 1.0}
+state: /pkg/ant.resources/materials/states/quad.state

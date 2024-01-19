@@ -1,0 +1,33 @@
+---
+data:
+  daynight:
+    ambient:
+      ---
+      time: 0
+      value: {1, 1, 1}
+      ---
+      time: 1
+      value: {1, 1, 1}
+    direct:
+      ---
+      time: 0
+      value: {1, 1, 1, 0}
+      ---
+      time: 0.5
+      value: {1, 1, 1, 1}
+      ---
+      time: 1
+      value: {1, 1, 1, 0}
+    rotator:
+      ---
+      time: 0
+      value: {-0.9838573932647705, -0.17653483152389526, 0.032251037657260895}
+      ---
+      time: 0.5
+      value: {-0.04806450754404068, -0.636186420917511, 0.7700923681259155}
+      ---
+      time: 1
+      value: {0.9406062960624695, -0.19252729415893555, 0.27963149547576904}
+  prefab: /pkg/vaststars.resources/daynight.prefab
+policy:
+  ant.daynight|daynight

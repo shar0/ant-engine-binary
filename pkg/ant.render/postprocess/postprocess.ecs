@@ -1,0 +1,121 @@
+pipeline "postprocess"
+    .stage "shadow_blur"
+    .stage "pre_postprocess"
+    .stage "dof"
+    .stage "blur"
+    .stage "bloom"
+    .stage "tonemapping"
+    .stage "taa"
+    .stage "taa_copy"
+    .stage "taa_present"
+    .stage "fxaa"
+    .stage "fsr_resolve"
+    .stage "fsr_easu"
+    .stage "fsr_rcas"
+    .stage "swapchain"
+    .stage "blit"
+    .stage "flip"
+
+component "blur_queue"
+component "blur"
+component "gaussian_blur"
+    .type "lua"
+component "vblur_drawer"
+component "hblur_drawer"
+component "vblur_builder"
+component "hblur_builder"
+
+policy "blur"
+    .component "blur"
+    --.component "gaussian_blur"
+
+--system "shadow_blur_system"
+    --.implement "postprocess/shadow_blur/shadow_blur.lua"
+
+system "blur_system"
+    .implement "postprocess/blur.lua"
+
+
+system "pyramid_sample_system"
+    .implement "postprocess/pyramid_sample.lua"
+
+component "pyramid_sample"
+    .type "lua"
+
+policy "pyramid_sample"
+    .component "pyramid_sample"
+
+system "postprocess_system"
+    .implement "postprocess/postprocess.lua"
+
+component "postprocess"
+component "postprocess_input"
+    .type "lua"
+policy "postprocess_object"
+    .component "postprocess"
+    .component "postprocess_input"
+
+policy "postprocess_queue"
+    .include_policy "ant.render|render_target"
+    .component "queue_name"
+
+system "postprocess_obj_system"
+    .implement "postprocess/postprocess_obj.lua"
+
+component "resolver"
+
+component "tonemapping_queue"
+component "tonemapping_drawer"
+
+system "tonemapping_system"
+    .implement "postprocess/tonemapping.lua"
+
+component "bloom_queue"
+component "bloom"
+
+policy "bloom"
+    .component "bloom"
+
+system "bloom_system"
+    .implement "postprocess/bloom.lua"
+
+component "fxaa_queue"
+component "fxaa_drawer"
+
+system "fxaa_system"
+    .implement "postprocess/fxaa.lua"
+
+component "taa_queue"
+component "taa_drawer"
+component "taa_first_frame_queue"
+component "taa_first_frame_drawer"
+component "taa_copy_queue"
+component "taa_copy_drawer"
+component "taa_present_queue"
+component "taa_present_drawer"
+
+system "taa_system"
+    .implement "postprocess/taa.lua"
+
+component "swapchain_queue"
+component "swapchain_drawer"
+
+system "swapchain_system"
+    .implement "postprocess/swapchain.lua"
+
+component "fsr_resolve_drawer"
+component "fsr_resolve_queue"
+component "fsr_easu_builder"
+component "fsr_rcas_builder"
+
+system "fsr_system"
+    .implement "postprocess/fsr.lua"
+
+-- system "dof_system"
+--     .implement "postprocess/DoF.lua"
+
+-- system "simpledof_system"
+--     .implement "postprocess/DoF2.lua"
+
+feature "hv_flip"
+    .import "postprocess/hv_flip/hv_flip.lua"

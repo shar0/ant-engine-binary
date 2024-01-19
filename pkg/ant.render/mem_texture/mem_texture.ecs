@@ -1,0 +1,7 @@
+system "mem_texture_system"
+    .implement "mem_texture/mem_texture.lua"
+
+system "mem_texture_common_system"
+    .implement "mem_texture/mem_texture_common.lua"
+
+component "mem_texture_ready"

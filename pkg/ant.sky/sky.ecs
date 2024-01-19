@@ -1,0 +1,13 @@
+import_feature "ant.render"
+
+pipeline "sky"
+    .stage "convert_sky"
+
+policy "skybox"
+    .include_policy "ant.render|simplerender"
+    .component "skybox"
+
+component "skybox"
+
+system "skybox_system"
+    .implement "skybox.lua"

@@ -1,0 +1,5 @@
+system "window_resize_system"
+    .implement "viewport/window_resize.lua"
+
+system "viewport_detect_system"
+    .implement "viewport/viewport_detect_system.lua"

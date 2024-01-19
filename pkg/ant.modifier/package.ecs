@@ -1,0 +1,7 @@
+system "modifier_system"
+    .implement "modifier.lua"
+
+component "modifier".type "lua"
+
+policy "modifier"
+    .component "modifier"

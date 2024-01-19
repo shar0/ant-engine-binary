@@ -1,0 +1,16 @@
+import_feature "ant.efk"
+import_feature "ant.animation"
+
+system "animation_system"
+    .implement "animation.lua"
+
+system "keyframe_system"
+    .implement "keyframe.lua"
+
+policy "keyframe"
+    .component "keyframe"
+
+component "playing"
+component "keyframe".type "lua"
+component "animation_birth".type "lua"
+component "anim_ctrl".type "lua"

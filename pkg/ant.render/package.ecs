@@ -1,0 +1,17 @@
+import_feature "ant.camera"
+
+pipeline "render"
+    .stage "skin_mesh"
+    .stage "refine_filter"
+    .stage "cull"
+    .stage "refine_camera"
+    .pipeline "preprocess"
+    .pipeline "render_process"
+    .pipeline "postprocess"
+
+
+feature "lightmap"
+    .import "lightmap/lightmap.ecs"
+
+import "renderqueue.ecs"
+import "render.ecs"

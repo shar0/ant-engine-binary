@@ -1,0 +1,9 @@
+system "procedural_sky_system"
+    .implement "procedural_sky_system.lua"
+
+policy "procedural_sky"
+    .component "procedural_sky"
+
+component "procedural_sky"
+    .type "lua"
+component "procedural_sky_changed"

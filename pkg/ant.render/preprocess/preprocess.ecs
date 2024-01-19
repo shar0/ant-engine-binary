@@ -1,0 +1,13 @@
+pipeline "ssao"
+    .stage "build_ssao"
+    .stage "bilateral_filter"
+
+pipeline "preprocess"
+    .pipeline "depth"
+    .pipeline "ssao"
+
+component "ssao_dispatcher"
+component "bilateral_filter_dispatcher"
+
+system "ssao_system"
+    .implement "preprocess/ssao.lua"

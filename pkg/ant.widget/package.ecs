@@ -1,0 +1,19 @@
+system "physic_bounding_system"
+    .implement "widget.lua"
+
+system "render_mesh_bounding_system"
+    .implement "widget.lua"
+
+system "widget_drawer_system"
+    .implement "widget.lua"
+
+policy "bounding_draw"
+    .component "widget_drawer"
+
+component "widget_drawer"
+    .type "lua"
+
+component "debug_mesh_bounding"
+policy "debug_mesh_bounding"
+    .component "debug_mesh_bounding"
+

@@ -1,0 +1,5 @@
+---
+data:
+  scene: {}
+policy:
+  ant.scene|scene_object

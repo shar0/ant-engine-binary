@@ -1,0 +1,7 @@
+system "screen_3dobj_system"
+    .implement "screen_3dobj.lua"
+
+component "screen_3dobj".type "lua"
+
+policy "screen_3dobj"
+    .component "screen_3dobj"

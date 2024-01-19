@@ -1,0 +1,13 @@
+import_feature "ant.asset"
+import_feature "ant.scene"
+
+policy "skinrender"
+    .include_policy "ant.render|render_object"
+    .include_policy "ant.scene|scene_object"
+    .include_policy "ant.scene|bounding"
+    .include_policy "ant.asset|material"
+    .component_opt "render_layer"
+    .component "mesh"
+    .component "visible_state"
+
+component "skinning".type "lua"

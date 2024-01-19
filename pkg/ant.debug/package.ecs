@@ -1,0 +1,11 @@
+system "debug_system"
+    .implement "debug.lua"
+
+feature "debug_material"
+    .import "debug_material.ecs"
+
+feature "debug_mipmap"
+    .import "debug_mipmap.ecs"
+
+feature "debug_texture"
+    .import "debug_texture.ecs"

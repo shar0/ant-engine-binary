@@ -1,0 +1,16 @@
+--import "pickup/pickup_debug.ecs"
+
+pipeline "select"
+    .stage "pickup"
+    .stage "after_pickup"
+
+component "pickup_queue"
+
+component "pickup"
+    .type "lua"
+
+policy "pickup"
+    .component "pickup"
+
+system "pickup_system"
+    .implement "pickup/pickup_system.lua"

@@ -1,0 +1,16 @@
+system "cube_shape_terrain_system"
+    .implement "cube_shape_terrain.lua"
+
+component "shape_terrain_drawer"
+component "shape_terrain_edge_drawer"
+
+system "mesh_terrain_system"
+    .implement "mesh_terrain.lua"
+
+-- quad_strip
+component "quad_strip".type "lua"
+system "quad_strip_system"
+    .implement "quad_strip.lua"
+
+policy "quad_strip"
+    .component "quad_strip"

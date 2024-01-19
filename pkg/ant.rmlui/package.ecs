@@ -1,0 +1,5 @@
+feature "rt"
+    .import "rt.ecs"
+
+system "rmlui_system"
+    .implement "rmlui_system.lua"

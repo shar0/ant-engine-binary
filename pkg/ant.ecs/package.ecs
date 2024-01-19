@@ -1,0 +1,45 @@
+pipeline "_entity_init"
+    .stage "component_init"
+    .stage "entity_init"
+    .stage "entity_ready"
+
+pipeline "_entity_remove"
+    .stage "scene_remove"
+    .stage "entity_remove"
+
+pipeline "_frame_finish"
+    .stage "frame_remove"
+    .stage "frame_create"
+
+pipeline "_init"
+    .stage "init_system"
+    .stage "preinit"
+    .pipeline "init"
+    .pipeline "_frame_finish"
+    .stage "init_world"
+    .pipeline "_frame_finish"
+
+pipeline "_update"
+    .pipeline "update"
+    .pipeline "_frame_finish"
+
+pipeline "_exit"
+    .pipeline "exit"
+
+pipeline "_pipeline"
+    .stage "pipeline"
+
+system "entity_update_system"
+    .implement "entity_system.lua"
+system "entity_init_system"
+    .implement "entity_system.lua"
+system "debug_system"
+    .implement "debug_system.lua"
+
+component "INIT"
+component "on_ready"
+    .type "lua"
+component "on_message"
+    .type "lua"
+component "debug"
+    .type "lua"

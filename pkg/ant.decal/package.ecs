@@ -1,0 +1,12 @@
+import_feature "ant.asset"
+import_feature "ant.render"
+
+component "decal".type "lua"
+policy "decal"
+    .component "visible_state"
+    .component "decal"
+    .component "material"
+    .component "render_layer"
+
+system "decal_system"
+    .implement "decal.lua"

@@ -1,0 +1,19 @@
+import_feature "ant.render"
+
+component "blur_scene"
+    .type "lua"
+
+component "blend_scene"
+component "stop_scene"
+
+policy "blur_scene"
+    .component "blur_scene"
+
+policy "blend_scene"
+    .component "blend_scene"
+
+policy "stop_scene"
+    .component "stop_scene"
+
+system "blur_scene_system"
+    .implement "blur_scene/blur_scene.lua"

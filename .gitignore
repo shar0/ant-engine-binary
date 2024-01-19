@@ -1,0 +1,12 @@
+/.vscode/
+/.vs/
+
+res/
+.app/
+
+*.DS_Store
+
+editor.settings
+editor.user.setting
+editor.user.ini
+/tools/rmlviewer/mod

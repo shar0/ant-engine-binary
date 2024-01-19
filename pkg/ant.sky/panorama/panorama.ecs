@@ -1,0 +1,24 @@
+component "filter_ibl"
+
+system "render2cm_system"
+    .implement "panorama/render2cm.lua"
+
+component "cvt_p2cm_drawer"
+component "filter_drawer"
+
+component "cubemap_face_queue_px"
+component "cubemap_face_queue_nx"
+component "cubemap_face_queue_py"
+component "cubemap_face_queue_ny"
+component "cubemap_face_queue_pz"
+component "cubemap_face_queue_nz"
+
+
+system "cs2cm_system"
+    .implement "panorama/cs2cm.lua"
+
+system "cubemap_mipmap_system"
+    .implement "panorama/cubemap_mipmap.lua"
+
+component "cubemap_mipmap_builder"
+component "cubemap_mipmap".type "lua"

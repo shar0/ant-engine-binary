@@ -1,0 +1,7 @@
+system "water_system"
+    .implement "water_system.lua"
+
+component "water".type "lua"
+
+policy "water"
+    .component "water"

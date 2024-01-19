@@ -1,0 +1,35 @@
+import_feature "ant.render"
+
+policy "shape_terrain"
+    .component "shape_terrain"
+
+policy "stonemountain"
+    .component "stonemountain"
+
+policy "plane_terrain"
+    .component "plane_terrain"
+
+component "plane_terrain".type "lua"
+component "shape_terrain".type "lua"
+
+component "breath".type "lua"
+component "stonemountain".type "lua"
+
+component "road".type "lua"
+policy "road"
+    .component "road"
+
+component "road_indicator"
+
+
+system "plane_terrain_system"
+    .implement "plane_terrain.lua"
+
+system "road_system"
+    .implement "road.lua"
+
+system "translucent_plane_system"
+    .implement "translucent_plane_system.lua"
+
+system "stone_mountain_system"
+    .implement "stone_mountain_system.lua"

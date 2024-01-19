@@ -1,0 +1,25 @@
+import_feature "ant.scene"
+
+component "hitch_tag"
+component "hitch_update"
+component "hitch_create"
+component "hitch_indirect"
+component "dynamic_mesh"
+
+component "hitch"
+    .type "c"
+    .field "group:int"
+    .field "visible_idx:int"
+    .field "cull_idx:int"
+    .implement "hitch/hitch.lua"
+
+component "hitch_visible" -- view_visible & hitch
+
+system "hitch_system"
+    .implement "hitch/hitch.lua"
+
+policy "hitch_object"
+    .include_policy "ant.scene|scene_object"
+    .include_policy "ant.scene|bounding"
+    .component "hitch"
+    .component "visible_state"

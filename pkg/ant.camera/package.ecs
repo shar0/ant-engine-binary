@@ -1,0 +1,31 @@
+import_feature "ant.scene"
+
+component "camera_ref".type "int64"
+component "camera_changed"
+
+pipeline "camera"
+    .stage "merge_camera_changed"
+    .stage "update_camera"
+    .stage "update_camera_bounding"
+    .stage "update_camera_depend"
+    .stage "camera_usage"
+
+policy "exposure"
+    .component "exposure"
+
+policy "camera"
+    .component "camera"
+    .component "scene"
+
+component "camera_depend"
+component "exposure".type "lua"
+component "camera".type "lua"
+
+system "camera_view_system"
+    .implement "camera.lua"
+
+feature "camera_recorder"
+    .import "camera_recorder.ecs"
+
+feature "camera_controller"
+    .import "camera_controller.ecs"

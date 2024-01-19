@@ -1,0 +1,13 @@
+fx:
+    cs: /pkg/ant.resources/shaders/pbr/ibl/cs_build_LUT.sc
+    macros:
+        "BUILD_LUT=1"
+    setting:
+        lighting: off
+properties:
+    u_build_ibl_param: {512, 0, 128, 0}    #sample count, lod bais, cube face texture size, roughness
+    s_LUT_write:
+        stage: 0
+        mip: 0
+        access: w
+        image: /pkg/ant.resources/textures/default.texture

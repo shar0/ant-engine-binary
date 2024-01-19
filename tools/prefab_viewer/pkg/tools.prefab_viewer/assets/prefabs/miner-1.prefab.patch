@@ -1,0 +1,18 @@
+---
+tag: effect
+data:
+  scene:
+    r: {0, 0, 0, 1}
+    s: {4, 4, 4}
+    t: {0, 0, 0}
+policy:
+  ant.scene|scene_obejct
+---
+tag: shelf5
+data:
+  scene:
+    r: {0, 0, 0, 1}
+    s: {1, 1, 1}
+    t: {17.968830108642578, 15.485337257385254, 0}
+policy:
+  ant.scene|scene_obejct

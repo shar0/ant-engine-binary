@@ -1,0 +1,21 @@
+fx:
+  shader_type: PBR
+  macros:
+    "UI_RT=1"
+    "ALPHAMODE_OPAQUE=1"
+  varyings: /pkg/ant.resources/materials/lighting.varyings
+  setting:
+    lighting: on
+    cast_shadow: on
+    receive_shadow: on
+    subsurface: off
+properties:
+  u_basecolor_factor: {0.8986663818359375, 0.9804151058197021, 1, 1}
+  u_emissive_factor: {0, 0, 0, 0}
+  u_pbr_factor: {0, 0.5, 0.5, 1}
+state:
+  ALPHA_REF: 0
+  CULL: NONE
+  DEPTH_TEST: GREATER
+  MSAA: true
+  WRITE_MASK: RGBAZ

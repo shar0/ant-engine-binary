@@ -1,0 +1,16 @@
+import_feature "ant.scene"
+
+component "directional_light"
+component "point_light"
+component "spot_light"
+component "area_light"
+component "make_shadow"
+system "light_system"
+    .implement "light/light.lua"
+
+policy "light"
+    .include_policy "ant.scene|scene_object"
+    .component "light"
+    .component "visible"
+
+component "light" .type "lua"

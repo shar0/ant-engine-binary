@@ -1,0 +1,11 @@
+build
+bin
+*.code-workspace
+.vscode
+shaders/*.bin
+shaders/*.hlsl
+examples/cube/shaders/*.bin
+examples/cube/shaders/*.hlsl
+*.so
+*.dll
+*.ilk

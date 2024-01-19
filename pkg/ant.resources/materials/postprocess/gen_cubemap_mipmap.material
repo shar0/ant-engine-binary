@@ -1,0 +1,15 @@
+fx:
+  cs: /pkg/ant.resources/shaders/gen_mipmap/cs_gen_cubemap_mipmap.sc
+  setting:
+    lighting: off
+properties:
+  s_source:
+    stage: 0
+    access: r
+    mip: 0
+    image: /pkg/ant.resources/textures/black.texture
+  s_result:
+    stage: 1
+    access: w
+    mip: 1
+    image: /pkg/ant.resources/textures/black.texture

@@ -1,0 +1,16 @@
+component "skininfo".type "lua"
+component "skinning_builder"
+
+component "cs_skinning_ready"
+system "cs_skinning_system"
+    .implement "skinning/cs_skinning_system.lua"
+
+policy "cs_skinrender"
+    .include_policy "ant.render|render_object"
+    .include_policy "ant.scene|bounding"
+    .include_policy "ant.asset|material"
+    .component_opt "skinning"
+    .component_opt "render_layer"
+    .component_opt "skininfo"
+    .component "mesh"
+    .component "visible_state"
