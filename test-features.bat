@@ -1,0 +1,1 @@
+.\bin\msvc\release\lua.exe .\test\features\main.lua
