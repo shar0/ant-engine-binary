@@ -2,12 +2,6 @@ local ecs = ...
 
 local m = ecs.system "init_system"
 
-local platform = require "bee.platform"
-if platform.os ~= "macos" then
-    log.error(platform.os .. " is not supported.")
-    return
-end
-
 local httpc = require "httpc"
 local session = httpc.session "ephemeral"
 
@@ -32,15 +26,31 @@ local function startUpload(url, file, name)
 end
 
 function m:init()
-    --startDownload(
-    --    "https://antengine-server-patch.ejoy.com/cc/",
-    --    "./test/httpc/test.html"
-    --)
-    startUpload(
-        "http://antengine-client-logcollector.ejoy.com:80/file_upload",
-        "./test/httpc/test.html",
-        "test.html"
+    startDownload(
+        "https://antengine-server-patch.ejoy.com/cc/",
+        "./test/httpc/download/cc.html"
     )
+    startDownload(
+        "https://antengine-server-patch.ejoy.com/cc/a",
+        "./test/httpc/download/cc_a.html"
+    )
+    startDownload(
+        "https://antengine-server-patch.ejoy.com/cc/b",
+        "./test/httpc/download/cc_b.html"
+    )
+    startDownload(
+        "https://antengine-server-patch.ejoy.com/cc/c",
+        "./test/httpc/download/cc_c.html"
+    )
+    startDownload(
+        "https://antengine-server-patch.ejoy.com/cc/d",
+        "./test/httpc/download/cc_d.html"
+    )
+    --startUpload(
+    --    "http://antengine-client-logcollector.ejoy.com:80/file_upload",
+    --    "./test/httpc/test.html",
+    --    "test.html"
+    --)
 end
 
 function m:data_changed()
@@ -59,6 +69,9 @@ function m:data_changed()
         elseif msg.type == "response" then
             local task = Tasks[msg.id]
             print(("`%s` response: %s."):format(task.url, msg.data))
+        elseif msg.type == "error" then
+            local task = Tasks[msg.id]
+            print(("`%s` error: %s."):format(task.url, msg.errmsg))
         end
     end
 end

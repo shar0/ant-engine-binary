@@ -6,6 +6,7 @@ local math3d    = require "math3d"
 local ImGui     = import_package "ant.imgui"
 local rhwi      = import_package "ant.hwi"
 local mathpkg   = import_package "ant.math"
+local window    = import_package "ant.window"
 local faicons   = require "common.fa_icons"
 local mc        = mathpkg.constant
 local ivs       = ecs.require "ant.render|visible_state"
@@ -251,7 +252,7 @@ function m:handle_event()
                 if e.slot then
                     hierarchy:update_slot_list(world)
                 end
-                prefab_mgr:on_patch_tag(target, v1, v2)
+                prefab_mgr:on_patch_tag(target, v1, v2, false, true)
             end
         elseif what == "parent" then
             target = prefab_mgr:set_parent(target, v1)
@@ -328,7 +329,7 @@ function m:handle_event()
 
     for _, what in event_window_title:unpack() do
         local title = "Editor - " .. what
-        ImGui.SetWindowTitle(title)
+        window.set_title(title)
         gizmo:set_target(nil)
     end
 

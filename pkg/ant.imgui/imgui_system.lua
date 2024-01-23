@@ -5,10 +5,10 @@ local ImGui = import_package "ant.imgui"
 local rhwi = import_package "ant.hwi"
 local assetmgr = import_package "ant.asset"
 local inputmgr = import_package "ant.inputmgr"
+local window = import_package "ant.window"
 local PM = require "programan.client"
 
 local ltask = require "ltask"
-local ServiceWindow = ltask.queryservice "ant.window|window"
 
 local m = ecs.system 'imgui_system'
 
@@ -18,8 +18,6 @@ function m:init_system()
 		"NavEnableKeyboard",
 		"DockingEnable",
 		"NavNoCaptureKeyboard",
-		"DpiEnableScaleViewports",
-		"DpiEnableScaleFonts",
 		"NoMouseCursorChange",
 	}
 	ImGui.InitPlatform(rhwi.native_window())
@@ -42,24 +40,12 @@ function m:init_system()
 			SizePixels = 18,
 			GlyphRanges = { 0x23E0, 0x329F, 0x1F000, 0x1FA9F }
 		}
-		ImGui.FontAtlasAddFont {
-			SystemFont = "黑体",
-			SizePixels = 18,
-			GlyphRanges = { 0x0020, 0xFFFF }
-		}
-	elseif platform.os == "macos" then
-		ImGui.FontAtlasAddFont {
-			SystemFont = "苹方-简",
-			SizePixels = 18,
-			GlyphRanges = { 0x0020, 0xFFFF }
-		}
-	else -- iOS
-		ImGui.FontAtlasAddFont {
-			SystemFont = "Heiti SC",
-			SizePixels = 18,
-			GlyphRanges = { 0x0020, 0xFFFF }
-		}
 	end
+	ImGui.FontAtlasAddFont {
+		FontPath = "/pkg/ant.resources.binary/font/Alibaba-PuHuiTi-Regular.ttf",
+		SizePixels = 18,
+		GlyphRanges = { 0x0020, 0xFFFF }
+	}
 	inputmgr:enable_imgui()
 end
 
@@ -79,7 +65,7 @@ function m:start_frame()
 	local cursor = ImGui.GetMouseCursor()
 	if last_cursor ~= cursor then
 		last_cursor = cursor
-		ltask.call(ServiceWindow, "setcursor", cursor)
+		window.set_cursor(cursor)
 	end
 	ImGui.NewFrame()
 end
