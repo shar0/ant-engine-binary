@@ -1,1 +1,1 @@
-.\bin\msvc\release\lua.exe .\tools\editor\main.lua
+.\bin\msvc\release\lua.exe .\tools\editor\main.lua test\simple
