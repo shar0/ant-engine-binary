@@ -79,7 +79,7 @@ local SYS_ATTRIBS = {
 	u_csm_split_distances= uniform_value(ZERO),
 	u_depth_scale_offset = uniform_value(ZERO),
 	u_shadow_param1		 = uniform_value(ZERO),
-	u_shadow_param2		 = uniform_value(ZERO),
+	u_soft_shadow_param	 = uniform_value(ZERO),
 
 	s_shadowmap			 = texture_value(8, "SAMPLER2D"),
 	--u_main_camera_matrix = uniform_value(mc.IDENTITY_MAT),
@@ -100,7 +100,10 @@ local SYS_ATTRIBS = {
 	s_ssao				= texture_value(9, "SAMPLER2D"),
 	--postprocess
 	u_reverse_pos_param	= uniform_value(ZERO),
-	u_jitter            = uniform_value(ZERO)
+	u_jitter            = uniform_value(ZERO),
+
+	--- direct specular D F V
+	s_direct_specular = texture_value(13, "SAMPLER2D"),
 }
 
 return SYS_ATTRIBS

@@ -38,8 +38,8 @@ local function can_delete(eid)
     end
     local can_delete = true
     if as_main_camera_mode() then
-        local e <close> = world:entity(eid, "camera?in")
-        if e.camera then
+        local e <close> = world:entity(eid, "camera?in animation?in")
+        if e.camera or e.animation then
             can_delete = false
         else
             local children = hierarchy:get_node(eid).children
@@ -263,17 +263,6 @@ local geom_type = {
     "sphere",
     "torus",
     "plane",
-    -- "cube(prefab)",
-    -- "cone(prefab)",
-    -- "cylinder(prefab)",
-    -- "sphere(prefab)",
-    -- "torus(prefab)",
-    -- "plane(prefab)",
-}
-local collider_type = {
-    "sphere",
-    "box",
-    --"capsule"
 }
 
 function m.get_title()
@@ -284,7 +273,7 @@ function m.show()
     local viewport = ImGui.GetMainViewport()
     ImGui.SetNextWindowPos(viewport.WorkPos[1], viewport.WorkPos[2] + uiconfig.ToolBarHeight, 'F')
     ImGui.SetNextWindowSize(uiconfig.SceneWidgetWidth, viewport.WorkSize[2] - uiconfig.BottomWidgetHeight - uiconfig.ToolBarHeight, 'F')
-    if ImGui.Begin("Hierarchy", ImGui.Flags.Window { "NoCollapse", "NoClosed" }) then
+    if ImGui.Begin("Hierarchy", true, ImGui.Flags.Window { "NoCollapse" }) then
         if ImGui.Button(faicons.ICON_FA_SQUARE_PLUS.." Create") then
             ImGui.OpenPopup("CreateEntity")
         end
@@ -311,9 +300,6 @@ function m.show()
             if ImGui.MenuItem("Camera") then
                 world:pub { "Create", "camera"}
             end
-            -- if ImGui.MenuItem("Slot") then
-            --     world:pub { "Create", "slot"}
-            -- end
             if ImGui.MenuItem("Timeline") then
                 world:pub { "Create", "timeline"}
             end
@@ -327,12 +313,12 @@ function m.show()
             ImGui.EndPopup()
         end
         ImGui.Separator()
-        if ImGui.TableBegin("InspectorTable", 3, ImGui.Flags.Table {'ScrollY'}) then
+        if ImGui.BeginTable("InspectorTable", 3, ImGui.Flags.Table {'ScrollY'}) then
             -- local child_width, child_height = ImGui.GetContentRegionAvail()
-            ImGui.TableSetupColumn("Entity", ImGui.Flags.TableColumn {'NoHide', 'WidthStretch'}, 1.0)
+            ImGui.TableSetupColumnEx("Entity", ImGui.Flags.TableColumn {'NoHide', 'WidthStretch'}, 1.0)
             local fw = 24.0 * icons.scale
-            ImGui.TableSetupColumn("Lock", ImGui.Flags.TableColumn {'WidthFixed'}, fw)
-            ImGui.TableSetupColumn("Visible", ImGui.Flags.TableColumn {'WidthFixed'}, fw)
+            ImGui.TableSetupColumnEx("Lock", ImGui.Flags.TableColumn {'WidthFixed'}, fw)
+            ImGui.TableSetupColumnEx("Visible", ImGui.Flags.TableColumn {'WidthFixed'}, fw)
             ImGui.TableHeadersRow()
             for _, child in ipairs(hierarchy.root.children) do
                 target_e = nil
@@ -341,7 +327,7 @@ function m.show()
                     world:pub {"EntityEvent", "parent", source_e, target_e}
                 end
             end
-            ImGui.TableEnd()
+            ImGui.EndTable()
         end
     end
     ImGui.End()

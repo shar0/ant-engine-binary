@@ -1,26 +1,13 @@
 ---
 policy:
-    ant.render|render
-data:
-    scene:
-      s: 10
-    material: /pkg/ant.resources/materials/singlecolor.material
-    mesh: "/pkg/ant.resources.binary/meshes/base/cube.glb|meshes/Cube_P1.meshbin"
-    visible_state: main_view|selectable
----
-policy:
   ant.render|light
 data:
-  scene:
-    t: {0, 10, 0, 1}
+  scene: {}
   light:
-    color: {0.8, 0.8, 0.8, 1}
-    intensity: 12000
+    color: {0.8, 0.0, 0.0, 1}
+    intensity: 120000
     intensity_unit: candela
-    range: 15
+    range: 5
     type: point
-  point_light: true
   visible: true
-action:
-    mount: @1
 

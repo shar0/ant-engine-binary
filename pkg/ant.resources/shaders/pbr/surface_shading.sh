@@ -4,41 +4,30 @@
 // code from filament|shading_model_standard.fs
 
 #include "common/math.sh"
-
+#include "direct_specular.sh"
 #ifndef SHADING_WITH_HIGH_QUALITY
 #define SHADING_WITH_HIGH_QUALITY 1
 #endif //
+
+#define USE_DIRECT_SPECULAR_LUT
+
+#ifdef USE_DIRECT_SPECULAR_LUT
+SAMPLER2D(s_direct_specular,                13);
+#endif // USE_DIRECT_SPECULAR_LUT
+
 
 //------------------------------------------------------------------------------
 // Specular BRDF implementations
 //------------------------------------------------------------------------------
 
-float D_GGX(float roughness, float NdotH, vec3 h, vec3 N) {
-    // Walter et al. 2007, "Microfacet Models for Refraction through Rough Surfaces"
-
-    // In mediump, there are two problems computing 1.0 - NdotH^2
-    // 1) 1.0 - NdotH^2 suffers floating point cancellation when NdotH^2 is close to 1 (highlights)
-    // 2) NdotH doesn't have enough precision around 1.0
-    // Both problem can be fixed by computing 1-NdotH^2 in highp and providing NdotH in highp as well
-
-    // However, we can do better using Lagrange's identity:
-    //      ||a x b||^2 = ||a||^2 ||b||^2 - (a . b)^2
-    // since N and H are unit vectors: ||N x H||^2 = 1.0 - NdotH^2
-    // This computes 1.0 - NdotH^2 directly (which is close to zero in the highlights and has
-    // enough precision).
-    // Overall this yields better performance, keeping all computations in mediump
-#if SHADING_WITH_HIGH_QUALITY
-    float oneMinusNoHSquared = 1.0 - NdotH * NdotH;
-#else //!SHADING_WITH_HIGH_QUALITY
-    vec3 NxH = cross(N, h);
-    float oneMinusNoHSquared = dot(NxH, NxH);
-#endif //SHADING_WITH_HIGH_QUALITY
+float D_GGX(float roughness, float NdotH) {
 
     float a = NdotH * roughness;
-    float k = roughness / (oneMinusNoHSquared + a * a);
-    float d = k * k * (1.0 / PI);
-    //return saturateMediump(d);
-    return saturate(d);
+    //Since roughness set to 10e-6 at initialization, the denominator must be greater than 0
+    float denom = 1.0 - NdotH * NdotH + a * a;
+    float k = roughness * rcp(denom);
+    return k * k * (1.0 / PI);
+
 }
 
 float V_SmithGGXCorrelated(float roughness, float NdotV, float NdotL) {
@@ -56,10 +45,10 @@ float V_SmithGGXCorrelated(float roughness, float NdotV, float NdotL) {
 }
 
 float V_SmithGGXCorrelated_Fast(float roughness, float NdotV, float NdotL) {
-    // Hammon 2017, "PBR Diffuse Lighting for GGX+Smith Microsurfaces"
-    float v = 0.5 / mix(2.0 * NdotL * NdotV, NdotL + NdotV, roughness);
-    //return saturateMediump(v);
-    return saturate(v);
+    float a = roughness;
+    float GGXV = NdotL * (NdotV * (1.0 - a) + a);
+    float GGXL = NdotV * (NdotL * (1.0 - a) + a);
+    return 0.5 / (GGXV + GGXL);
 }
 
 float V_Neubelt(float NdotV, float NdotL) {
@@ -83,16 +72,12 @@ float F_Schlick(float f0, float f90, float VdotH) {
 }
 
 ///// Specular
-float distribution(float roughness, float NdotH, vec3 h, vec3 N) {
-    return D_GGX(roughness, NdotH, h, N);
+float distribution(float roughness, float NdotH) {
+    return D_GGX(roughness, NdotH);
 }
 
 float visibility(float roughness, float NdotV, float NdotL) {
-#if SHADING_WITH_HIGH_QUALITY
-    return V_SmithGGXCorrelated(roughness, NdotV, NdotL);
-#else //!SHADING_WITH_HIGH_QUALITY
-    return V_SmithGGXCorrelated_Fast(roughness, NdotV, NdotL);
-#endif //SHADING_WITH_HIGH_QUALITY
+return V_SmithGGXCorrelated_Fast(roughness, NdotV, NdotL);
 }
 
 vec3 fresnel(vec3 f0, float LdotH) {
@@ -104,14 +89,23 @@ vec3 fresnel(vec3 f0, float LdotH) {
 #endif //SHADING_WITH_HIGH_QUALITY
 }
 
+float G1V(float dotNV, float k)
+{
+	return 1.0f/(dotNV*(1.0f-k)+k);
+}
+
 vec3 specular_lobe(material_info mi, light_info light, vec3 h,
         float NdotH, float LdotH) {
-
-    float D = distribution(mi.roughness, NdotH, h, mi.N);
-    float V = visibility(mi.roughness, mi.NdotV, mi.NdotL);
-    vec3  F = fresnel(mi.f0, LdotH);
-
-    return (D * V) * F;
+//http://filmicworlds.com/blog/optimizing-ggx-shaders-with-dotlh/
+#ifdef USE_DIRECT_SPECULAR_LUT
+	float D = texture2D(s_direct_specular, vec2(NdotH, mi.roughness)).x;
+    vec2 FV_helper = texture2D(s_direct_specular, vec2(LdotH, mi.roughness)).yz;
+#else //!USE_DIRECT_SPECULAR_LUT
+    float D = LightingFuncGGX_D(NdotH, mi.roughness);
+    vec2 FV_helper = LightingFuncGGX_FV(LdotH, mi.roughness);
+#endif // USE_DIRECT_SPECULAR_LUT 
+	vec3 FV = mi.f0 * FV_helper.x + vec3_splat(FV_helper.y);
+	return mi.NdotL * D * FV;
 }
 
 ///////// diffuse
@@ -143,7 +137,10 @@ vec3 surface_shading(const material_info mi, const light_info light) {
 
     vec3 color =    diffuse_lobe(mi, LdotH) + 
                     specular_lobe(mi, light, h, NdotH, LdotH) * mi.energy_compensation;
-
+    color *= light.color.rgb;
+    float s = light.intensity * light.attenuation;
+    s *= mi.NdotL;
+    return color * s;
     return (color * light.color.rgb) *
             (light.intensity * light.attenuation * mi.NdotL);
 }

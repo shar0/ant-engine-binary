@@ -19,15 +19,29 @@ function m:animation_playback()
                 local duration = status.handle:duration()
                 local speed = status.speed
                 local ratio = status.ratio + speed * delta / duration
-                if ratio > 1 then
-                    if status.loop then
-                        ratio = ratio - math.floor(ratio)
-                    else
-                        status.play = nil
-                        status.ratio = 0
-                        status.weight = 0
-                        e.animation_changed = true
-                        goto continue
+                if speed < 0 then
+                    if ratio < 0 then
+                        if status.loop then
+                            ratio = ratio - math.floor(ratio)
+                        else
+                            status.play = nil
+                            status.ratio = 1
+                            status.weight = 0
+                            e.animation_changed = true
+                            goto continue
+                        end
+                    end
+                else
+                    if ratio > 1 then
+                        if status.loop then
+                            ratio = ratio - math.floor(ratio)
+                        else
+                            status.play = nil
+                            status.ratio = 0
+                            status.weight = 0
+                            e.animation_changed = true
+                            goto continue
+                        end
                     end
                 end
                 playing = true
@@ -62,6 +76,20 @@ function api.set_play(e, name, v)
         end
         e.animation_playback = true
     end
+end
+
+function api.set_play_all(e, v)
+    w:extend(e, "animation:in animation_playback?out")
+    local playing = false
+    for _, status in pairs(e.animation.status) do
+        if status.weight > 0 then
+            if status.play ~= v then
+                status.play = v
+                playing = playing or v
+            end
+        end
+    end
+    e.animation_playback = playing
 end
 
 function api.set_loop(e, name, v)

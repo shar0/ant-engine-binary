@@ -3,12 +3,8 @@ local world = ecs.world
 local w 	= world.w
 local math3d = require "math3d"
 
-local mathpkg	= import_package "ant.math"
-local mc		= mathpkg.constant
-
 local ientity 	= ecs.require "ant.render|components.entity"
 local imesh		= ecs.require "ant.asset|mesh"
-local imaterial = ecs.require "ant.asset|material"
 local iom		= ecs.require "ant.objcontroller|obj_motion"
 local ipt		= ecs.require "ant.landform|plane_terrain"
 local common 	= ecs.require "common"
@@ -103,12 +99,12 @@ function st_sys:init()
 end
 
 function st_sys:init_world()
-	local mq = w:first "main_queue camera_ref:in"
-    local eyepos = math3d.vector(0, 5, -5)
-    local camera_ref<close> = world:entity(mq.camera_ref)
-    iom.set_position(camera_ref, eyepos)
-    local dir = math3d.normalize(math3d.sub(mc.ZERO_PT, eyepos))
-    iom.set_direction(camera_ref, dir)
+	-- local mq = w:first "main_queue camera_ref:in"
+    -- local eyepos = math3d.vector(0, 5, -5)
+    -- local camera_ref<close> = world:entity(mq.camera_ref)
+    -- iom.set_position(camera_ref, eyepos)
+    -- local dir = math3d.normalize(math3d.sub(mc.ZERO_PT, eyepos))
+    -- iom.set_direction(camera_ref, dir)
 end
 
 function st_sys:entity_init()

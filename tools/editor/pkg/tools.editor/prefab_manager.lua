@@ -226,7 +226,7 @@ function m:clone(eid)
     self:add_entity(new_entity, pid, dsttpl)
     world:pub {"EntityEvent", "tag", new_entity, {}, { name }}
 end
-local timeline_id = 0
+
 function m:create(what, config)
     if not self.root then
         self:reset_prefab()
@@ -268,18 +268,6 @@ function m:create(what, config)
             local new_entity = world:create_entity(tmp)
             self:add_entity(new_entity, parent_eid, template)
             return new_entity
-        -- elseif config.type == "cube(prefab)" then
-        --     m:add_prefab("/pkg/tools.editor/resource/cube.prefab")
-        -- elseif config.type == "cone(prefab)" then
-        --     m:add_prefab("/pkg/tools.editor/resource/cone.prefab")
-        -- elseif config.type == "cylinder(prefab)" then
-        --     m:add_prefab("/pkg/tools.editor/resource/cylinder.prefab")
-        -- elseif config.type == "sphere(prefab)" then
-        --     m:add_prefab("/pkg/tools.editor/resource/sphere.prefab")
-        -- elseif config.type == "torus(prefab)" then
-        --     m:add_prefab("/pkg/tools.editor/resource/torus.prefab")
-        -- elseif config.type == "plane(prefab)" then
-        --     m:add_prefab("/pkg/tools.editor/resource/plane.prefab")
         end
     elseif what == "light" then
         if config.type == "directional" or config.type == "point" or config.type == "spot" then
@@ -288,7 +276,6 @@ function m:create(what, config)
             light_gizmo.init()
         end
     elseif what == "timeline" then
-        timeline_id = timeline_id + 1
         local template = {
             policy = {
                 "ant.timeline|timeline",
@@ -300,7 +287,7 @@ function m:create(what, config)
                     key_event = {}
                 },
             },
-            tag = { "timeline" .. timeline_id }
+            tag = { "timeline" }
         }
         local tmp = utils.deep_copy(template)
         tmp.data.on_ready = function (e)
@@ -378,7 +365,7 @@ function m:on_prefab_ready(prefab)
                 if i == 1 then
                     name = "Scene"
                 else
-                    name = pt.data.animation and "anim_ctrl" or (pt.data.mesh and tostring(fs.path(pt.data.mesh):stem()) or (pt.data.meshskin and tostring(fs.path(pt.data.meshskin):stem()) or ""))
+                    name = pt.data.animation and "animation" or (pt.data.mesh and tostring(fs.path(pt.data.mesh):stem()) or (pt.data.meshskin and tostring(fs.path(pt.data.meshskin):stem()) or ""))
                 end
             end
             tag_list[#tag_list + 1] = {name, eid}
@@ -467,7 +454,7 @@ function m:choose_prefab()
     if not ImGui.IsPopupOpen(title) then
         ImGui.OpenPopup(title)
     end
-    local change, opened = ImGui.BeginPopupModal(title, ImGui.Flags.Window{"AlwaysAutoResize", "NoClosed"})
+    local change, opened = ImGui.BeginPopupModal(title, true, ImGui.Flags.Window{"AlwaysAutoResize"})
     if change then
         if gd.is_opening then
 
@@ -511,7 +498,7 @@ function m:choose_prefab()
         end
         ImGui.Separator()
         for _, prefab in ipairs(prefab_list) do
-            if ImGui.Selectable(prefab, false, 0, 0, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
+            if ImGui.Selectable(prefab, false, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
                 if gd.is_opening then
                     self:open(gd.glb_filename.."|".. prefab, prefab, patch_template)
                 else
@@ -575,30 +562,40 @@ function m:open(filename, prefab_name, patch_tpl)
     self:reset_prefab(true)
     self.prefab_filename = filename
     local isglb = false
-    if filename:find('.glb|') then
+    if filename:match('.glb|') or filename:match('.gltf|') then
         isglb = true
     end
     local path_list = isglb and utils.split_ant_path(filename) or {}
     local virtual_prefab_path = (lfs.path('/') / lfs.relative((#path_list > 1) and path_list[1] or filename, gd.project_root)):string()
     if #path_list > 1 then
+        self.glb_filename = path_list[1]
         self.prefab_name = path_list[2]
         gd.virtual_prefab_path = virtual_prefab_path
         gd.current_compile_path = cook_prefab(virtual_prefab_path .. "|".. self.prefab_name)
-        self.glb_filename = path_list[1]
         virtual_prefab_path = virtual_prefab_path .. "/" .. self.prefab_name
         self.prefab_template = serialize.parse(virtual_prefab_path, aio.readall(virtual_prefab_path))
 
-        patch_tpl = patch_tpl or {}
-        self.origin_patch_template = patch_tpl
+        self.origin_patch_template = patch_tpl or {}
         self.patch_template = {}
         self.tag_patch = {}
-        for _, patch in ipairs(patch_tpl) do
+
+        local anim_file = "animations/" .. self.prefab_name:sub(1, -8) .. ".ozz"
+        local anim_patch = {}
+        for _, patch in ipairs(self.origin_patch_template) do
             if patch.path == "hitch.prefab" then
                 self.save_hitch = true
             elseif patch.file == self.prefab_name then
                 self.patch_template[#self.patch_template + 1] = patch
             end
+            if patch.file == "animations/animation.ozz" and patch.path == anim_file then
+                anim_patch[#anim_patch + 1] = patch
+            elseif patch.file == anim_file then
+                anim_patch[#anim_patch + 1] = patch
+            end
         end
+        self.anim_file = anim_file
+        self.anim_patch = anim_patch
+
         local node_idx = 0
         for _, patch in ipairs(self.patch_template) do
             if patch.op == "add" and patch.path == "/-" then
@@ -764,10 +761,16 @@ function m:add_prefab(path)
     if not self.root then
         self:reset_prefab()
     end
+    local path_list = utils.split_ant_path(path)
+    local virtual_path = (lfs.path('/') / lfs.relative((#path_list > 1) and path_list[1] or path, gd.project_root)):string()
+    if #path_list > 1 then
+        virtual_path = virtual_path .. "|".. path_list[2]
+        cook_prefab(virtual_path)
+    end
     local parent = gizmo.target_eid or (self.scene and self.scene or self.root)
     local v_root, temp = create_simple_entity(tostring(fs.path(path):stem()), parent)
     world:create_instance {
-        prefab = path,
+        prefab = virtual_path,
         parent = v_root,
         on_ready = function(inst)
             local children = inst.tag["*"]
@@ -777,14 +780,14 @@ function m:add_prefab(path)
                     local child = children[1]
                     local e <close> = world:entity(child, "camera?in")
                     if e.camera then
-                        local tpl = serialize.parse(path, aio.readall(path))
+                        local tpl = serialize.parse(virtual_path, aio.readall(virtual_path))
                         hierarchy:add(child, {template = tpl[1], editor = true, temporary = true}, v_root)
                     end
                 end
             end
         end
     }
-    self:add_entity(v_root, parent, temp, path)
+    self:add_entity(v_root, parent, temp, virtual_path)
 end
 
 function m:get_hitch_content()
@@ -831,7 +834,7 @@ function m:is_image_patch_node(patch)
 end
 function m:get_origin_patch_list(template_list)
     for _, patch in ipairs(self.origin_patch_template) do
-        if self:is_image_patch_node(patch) then
+        if self:is_image_patch_node(patch) or patch.file == self.anim_file or patch.path == self.anim_file then
             goto continue
         end
         if patch.file ~= self.prefab_name and patch.path ~= "hitch.prefab" then
@@ -851,6 +854,9 @@ function m:get_origin_patch_list(template_list)
 end
 
 function m:get_patch_list(template_list)
+    for _, patch in ipairs(self.anim_patch) do
+        template_list[#template_list + 1] = patch
+    end
     local template = hierarchy:get_prefab_template(true)
     for i = 2, #template do
         local tpl = template[i]
@@ -934,6 +940,7 @@ function m:save(path)
             end
             if #final_template > 0 then
                 utils.write_file(self.glb_filename..".patch", stringify(final_template))
+                assetmgr.unload(gd.virtual_prefab_path.."/" .. self.anim_file)
                 assetmgr.unload(self.glb_filename..".patch")
                 assetmgr.unload(self.glb_filename.."|"..self.prefab_name)
                 anim_view.save_keyevent()
@@ -1021,7 +1028,7 @@ function m:update_tag_list()
     local mtl_list = {""}
     local efk_list = {}
     for k, value in pairs(self.current_prefab.tag) do
-        if k ~= "*" and k ~= "anim_ctrl" then
+        if k ~= "*" and k ~= "animation" then
             for _, eid in ipairs(value) do
                 local ee <close> = world:entity(eid, "scene?in material?in")
                 if ee.scene or ee.material then
@@ -1400,56 +1407,42 @@ function m:on_patch_tranform(eid, n, v)
 end
 
 function m:on_patch_animation(eid, name, path)
-    local anim_file
-    local patch_idx
+    local anim_file_exists
+    local remove_index
     local target_path = "/animations/" .. name
-    for index, value in ipairs(self.patch_template) do
-        if value.op == "copyfile" and value.file == "animations/animation.ozz" then
-            anim_file = value.path
+    for index, value in ipairs(self.anim_patch) do
+        if value.file == "animations/animation.ozz" and value.path == self.anim_file then
+            anim_file_exists = true
         end
-        if anim_file then
-            if not path then
-                if value.op == "replace" and value.file == anim_file and value.path == target_path then
-                    patch_idx = index
-                    break
-                end
-            else
-                break
-            end
+        if not path and value.op == "replace" and value.file == self.anim_file and value.path == target_path then
+            remove_index = index
+            break
         end
     end
     -- delete animation
-    if patch_idx and not path then
-        table.remove(self.patch_template, patch_idx)
+    if remove_index then
+        table.remove(self.anim_patch, remove_index)
         return
     end
-    local new_anim_file
-    if not anim_file then
-        new_anim_file = true
-        anim_file = "animations/" .. self.prefab_name:sub(1, -8) .. ".ozz"
-        self.patch_template[#self.patch_template + 1] = {
+    if not anim_file_exists then
+        self.anim_patch = {
             file = "animations/animation.ozz",
             op = "copyfile",
-            path = anim_file,
+            path = self.anim_file,
         }
-    end
-    if path then
-        self.patch_template[#self.patch_template + 1] = {
-            file = anim_file,
-            op = "replace",
-            path = "/animations/"..name,
-            value = path,
-        }
-    end
-    if new_anim_file then
         self.patch_template[#self.patch_template + 1] = {
             file = self.prefab_name,
             op = "replace",
             path = "/2/data/animation",
-            value = "./"..anim_file
+            value = "./"..self.anim_file
         }
     end
-    -- self:do_patch(eid, "/data/animation/"..name, path)
+    self.anim_patch[#self.anim_patch + 1] = {
+        file = self.anim_file,
+        op = path and "replace" or "remove",
+        path = "/animations/"..name,
+        value = path and path or nil,
+    }
     anim_view.update_anim_namelist()
 end
 return m

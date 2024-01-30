@@ -16,12 +16,10 @@ local mathpkg	= import_package "ant.math"
 local mc, mu    = mathpkg.constant, mathpkg.util
 local uiconfig  = require "widget.config"
 local uiutils   = require "widget.utils"
-local hierarchy = require "hierarchy_edit"
-local ozz       = require "ozz"
+local ozzoffline = require "ozz.offline"
 local math3d    = require "math3d"
 local icons     = require "common.icons"
 local faicons   = require "common.fa_icons"
-local gd        = require "common.global_data"
 local imguiWidgets  = require "imgui.widgets"
 local joint_utils   = require "widget.joint_utils"
 local widget_utils  = require "widget.utils"
@@ -419,7 +417,7 @@ local function create_clip()
         ImGui.OpenPopup(title)
     end
 
-    local change, opened = ImGui.BeginPopupModal(title, ImGui.Flags.Window{"AlwaysAutoResize", "NoClosed"})
+    local change, opened = ImGui.BeginPopupModal(title, true, ImGui.Flags.Window{"AlwaysAutoResize"})
     if change then
         ImGui.Text("StartFrame:")
         ImGui.SameLine()
@@ -786,7 +784,7 @@ local function create_animation(animtype, name, duration, target_anims)
         if animtype == "mtl" or animtype == "srt" then
             raw_anim = {}
         else
-            raw_anim = ozz.RawAnimation()
+            raw_anim = ozzoffline.RawAnimation()
             -- _duration = td,
             -- _sampling_context = ozz.new_sampling_context(1)
             raw_anim:setup(current_skeleton, td)
@@ -855,7 +853,7 @@ local function ShowNewAnimationUI()
         ImGui.OpenPopup(title)
     end
 
-    local change, opened = ImGui.BeginPopupModal(title, ImGui.Flags.Window{"AlwaysAutoResize", "NoClosed"})
+    local change, opened = ImGui.BeginPopupModal(title, true, ImGui.Flags.Window{"AlwaysAutoResize"})
     if change then
         ImGui.Text("Name:")
         ImGui.SameLine()
@@ -959,7 +957,7 @@ end
 
 local function play_animation(current)
     if current.type == "ske" then
-        iani.play(anim_eid, {name = current.name, loop = ui_loop[1], speed = ui_speed[1], manual = false})
+        iani.play(anim_eid, {name = current.name, loop = ui_loop[1], speed = ui_speed[1]})
     else
         for _, anim in ipairs(current.target_anims) do
             if anim.modifier then
@@ -977,7 +975,7 @@ function m.show()
     local viewport = ImGui.GetMainViewport()
     ImGui.SetNextWindowPos(viewport.WorkPos[1], viewport.WorkPos[2] + viewport.WorkSize[2] - uiconfig.BottomWidgetHeight, 'F')
     ImGui.SetNextWindowSize(viewport.WorkSize[1], uiconfig.BottomWidgetHeight, 'F')
-    if ImGui.Begin("Skeleton", ImGui.Flags.Window { "NoCollapse", "NoScrollbar", "NoClosed" }) then
+    if ImGui.Begin("Skeleton", true, ImGui.Flags.Window { "NoCollapse", "NoScrollbar" }) then
         if current_skeleton and not current_anim then
             if ImGui.Button(faicons.ICON_FA_FILE_PEN.." ske") then
                 new_anim_widget = true
@@ -1159,10 +1157,10 @@ function m.show()
                 ImGui.Text("material path: " .. tostring(current_mtl))
             end
         end
-        if ImGui.TableBegin("SkeletonColumns", 3, ImGui.Flags.Table {'Resizable', 'ScrollY'}) then
-            ImGui.TableSetupColumn("Targets", ImGui.Flags.TableColumn {'WidthStretch'}, 1.0)
-            ImGui.TableSetupColumn("Detail", ImGui.Flags.TableColumn {'WidthStretch'}, 1.5)
-            ImGui.TableSetupColumn("AnimationLayer", ImGui.Flags.TableColumn {'WidthStretch'}, 6.5)
+        if ImGui.BeginTable("SkeletonColumns", 3, ImGui.Flags.Table {'Resizable', 'ScrollY'}) then
+            ImGui.TableSetupColumnEx("Targets", ImGui.Flags.TableColumn {'WidthStretch'}, 1.0)
+            ImGui.TableSetupColumnEx("Detail", ImGui.Flags.TableColumn {'WidthStretch'}, 1.5)
+            ImGui.TableSetupColumnEx("AnimationLayer", ImGui.Flags.TableColumn {'WidthStretch'}, 6.5)
             ImGui.TableHeadersRow()
 
             ImGui.TableNextColumn()
@@ -1229,7 +1227,7 @@ function m.show()
             end
             ImGui.EndChild()
 
-            ImGui.TableEnd()
+            ImGui.EndTable()
         end
     end
     ImGui.End()
@@ -1249,7 +1247,6 @@ function m.save(path)
     end
     local animdata = {}
     --TODO: one animation per file
-    local isSke = false
     for _, anim in pairs(allanims) do
         local target_anims = utils.deep_copy(anim.target_anims)
         for _, subanim in ipairs(target_anims) do
@@ -1273,22 +1270,21 @@ function m.save(path)
             sample_ratio = sample_ratio,
             skeleton = (anim.type == "ske") and current_skeleton.filename or nil
         }
-        isSke = (anim.type == "ske")
     end
     utils.write_file(filename, stringify(animdata))
-    if isSke then
-        local bin_file = filename:sub(1, -5) .. "bin"
-        local mount = false
-        local lpath = lfs.path(bin_file)
-        if not lfs.exists(lpath) then
-            mount = true
-        end
-        local e <close> = world:entity(anim_eid, "animation:in")
-        ozz.save(e.animation.status[current_anim.name].handle, bin_file)
-        if mount then
-            memfs.update("/" .. lfs.relative(lpath, gd.project_root):string(), lpath:string())
-        end
-    end
+    -- if isSke then
+    --     local bin_file = filename:sub(1, -5) .. "bin"
+    --     local mount = false
+    --     local lpath = lfs.path(bin_file)
+    --     if not lfs.exists(lpath) then
+    --         mount = true
+    --     end
+    --     local e <close> = world:entity(anim_eid, "animation:in")
+    --     ozzoffline.save(e.animation.status[current_anim.name].handle, bin_file)
+    --     if mount then
+    --         memfs.update("/" .. lfs.relative(lpath, gd.project_root):string(), lpath:string())
+    --     end
+    -- end
     if file_path ~= filename then
         file_path = filename
     end
@@ -1465,7 +1461,7 @@ function m.on_eid_delete(eid)
 end
 
 function m.init(skeleton)
-    for e in w:select "eid:in animation:in anim_ctrl:in" do
+    for e in w:select "eid:in animation:in" do
         if e.animation.skeleton == skeleton then
             anim_eid = e.eid
         end

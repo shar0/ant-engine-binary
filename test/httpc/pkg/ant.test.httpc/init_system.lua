@@ -27,38 +27,25 @@ end
 
 function m:init()
     startDownload(
-        "https://antengine-server-patch.ejoy.com/cc/",
-        "./test/httpc/download/cc.html"
+        "https://ejoy.com/",
+        "./test/httpc/download/index.html"
     )
     startDownload(
-        "https://antengine-server-patch.ejoy.com/cc/a",
-        "./test/httpc/download/cc_a.html"
+        "https://ejoy.com/product.html",
+        "./test/httpc/download/product.html"
     )
     startDownload(
-        "https://antengine-server-patch.ejoy.com/cc/b",
-        "./test/httpc/download/cc_b.html"
+        "https://ejoy.com/links.html",
+        "./test/httpc/download/links.html"
     )
-    startDownload(
-        "https://antengine-server-patch.ejoy.com/cc/c",
-        "./test/httpc/download/cc_c.html"
-    )
-    startDownload(
-        "https://antengine-server-patch.ejoy.com/cc/d",
-        "./test/httpc/download/cc_d.html"
-    )
-    --startUpload(
-    --    "http://antengine-client-logcollector.ejoy.com:80/file_upload",
-    --    "./test/httpc/test.html",
-    --    "test.html"
-    --)
 end
 
 function m:data_changed()
     for _, msg in ipairs(httpc.select(session)) do
-        if  msg.type == "completion" then
+        if msg.type == "completion" then
             local task = Tasks[msg.id]
-            print("`" .. task.url .. "` completion.")
-            task[msg.id] = nil
+            print("`" .. task.url .. "` completion. code="..msg.code..".")
+            Tasks[msg.id] = nil
         elseif msg.type == "progress" then
             local task = Tasks[msg.id]
             if msg.total then

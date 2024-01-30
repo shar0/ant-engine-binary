@@ -21,6 +21,7 @@ end}
 
 local INDIRECT_DRAW_GROUPS = setmetatable({}, GID_MT)
 local DIRTY_GROUPS, DIRECT_DRAW_GROUPS = {}, {}
+local HITCH_MAPS = {}
 
 local h = ecs.component "hitch"
 function h.init(hh)
@@ -126,6 +127,15 @@ local function set_dirty_hitch_group(hitch, hid, state)
     local gid = hitch.group
     DIRTY_GROUPS[gid] = true
     local indirect_draw_group = INDIRECT_DRAW_GROUPS[gid]
+
+    local old_gid = HITCH_MAPS[hid]
+    if old_gid and old_gid ~= gid then
+        local old_indirect_draw_group = INDIRECT_DRAW_GROUPS[old_gid]
+        old_indirect_draw_group.hitchs[hid] = nil
+        DIRTY_GROUPS[old_gid] = true
+    end
+    HITCH_MAPS[hid] = gid
+
     if not indirect_draw_group.hitchs then
         indirect_draw_group.hitchs = {}
     end
@@ -176,40 +186,50 @@ function hitch_sys:finish_scene_update()
 
     for gid, hitchs in pairs(groups) do
         ig.enable(gid, "hitch_tag", true)
-        local h_aabb = math3d.aabb()
-        for re in w:select "hitch_tag bounding:in skinning?in dynamic_mesh?in" do
-            if mc.NULL ~= re.bounding.aabb then
-                h_aabb = math3d.aabb_merge(h_aabb, re.bounding.aabb)
-            end
-            if re.skinning or re.dynamic_mesh then
+        ig.enable(gid, "view_visible", true)
+        for re in w:select "hitch_tag bounding:in skinning?in dynamic_mesh?in material?in efk?in efk_visible?update" do
+            -- skinning mesh / dynamic mesh(lorry, etc...) / efk should be rendered in hitch_render_submit by hitch_visible tag
+            -- other mesh should be rendered in render_submit by view_visible tag
+            if re.skinning or re.dynamic_mesh  then
                 DIRECT_DRAW_GROUPS[gid] = true
+                ig.enable(gid, "view_visible", false)
+            end
+            if re.efk then
+                re.efk_visible = nil
             end
         end
         ig.enable(gid, "hitch_tag", false)
-        if math3d.aabb_isvalid(h_aabb) then
-            for _, heid in ipairs(hitchs) do
-                local e<close> = world:entity(heid, "hitch:in hitch_visible?out bounding:update scene_needchange?out")
-                e.scene_needchange = true
-                e.bounding.aabb = mu.M3D_mark(e.bounding.aabb, h_aabb)
-            end
+        for _, heid in ipairs(hitchs) do
+            local e<close> = world:entity(heid, "hitch:in scene_needchange?out")
+            e.scene_needchange = true
         end
     end
     w:clear "hitch_create"
 end
 
-local function obj_visible(obj, queue_index)
-	return Q.check(obj.visible_idx, queue_index) and (not Q.check(obj.cull_idx, queue_index))
-end
+local tick<const> = 10
+local cur_tick = 0
 
 function hitch_sys:render_preprocess()
     for e in w:select "hitch_update hitch:in eid:in" do
         local INDIRECT_DRAW_GROUP = not DIRECT_DRAW_GROUPS[e.hitch.group]
         if INDIRECT_DRAW_GROUP then
-            local mainmask = queuemgr.queue_mask "main_queue"
-            local is_visible = obj_visible(e.hitch, mainmask)
-            set_dirty_hitch_group(e.hitch, e.eid, is_visible) 
+            set_dirty_hitch_group(e.hitch, e.eid, true) 
         end
     end
+
+    if cur_tick >= tick then
+        for e in w:select "hitch:in eid:in view_visible?in" do
+            local INDIRECT_DRAW_GROUP = not DIRECT_DRAW_GROUPS[e.hitch.group]
+            if INDIRECT_DRAW_GROUP then
+                set_dirty_hitch_group(e.hitch, e.eid, e.view_visible) 
+            end
+        end
+        cur_tick = 0
+    else
+        cur_tick = cur_tick + 1
+    end 
+
     for gid in pairs(DIRTY_GROUPS) do
         local indirect_draw_group = INDIRECT_DRAW_GROUPS[gid]
         if indirect_draw_group.glbs then

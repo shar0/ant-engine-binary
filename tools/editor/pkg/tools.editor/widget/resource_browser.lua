@@ -60,7 +60,7 @@ local function construct_resource_tree(fspath)
         table.sort(sorted_path, function(a, b) return string.lower(tostring(a)) < string.lower(tostring(b)) end)
         for _, item in ipairs(sorted_path) do
             local ext = item:extension():string()
-            if lfs.is_directory(item) and ext ~= ".glb" and ext ~= ".material" and ext ~= ".texture" then
+            if lfs.is_directory(item) and ext ~= ".glb" and ext ~= ".gltf" and ext ~= ".material" and ext ~= ".texture" then
                 table.insert(tree.dirs, {item, construct_resource_tree(item), parent = {tree}})
                 if selected_folder[1] == item then
                     selected_folder = tree.dirs[#tree.dirs]
@@ -86,13 +86,7 @@ function m.update_resource_tree(hiden_engine_res)
         packages = {}
         for _, p in ipairs(global_data.packages) do
             local isengine
-            -- for _, ep in ipairs(engine_package_resources) do
-            --     if p.name == ep then
-            --         isengine = true
-            --         break
-            --     end
-            -- end
-            if string.sub(p.name, 1, 4) == "ant." then
+            if p.name:sub(1, 4) == "ant." and p.name:sub(1, 8) ~= "ant.test" then
                 isengine = true
             end
             if not isengine then
@@ -133,7 +127,7 @@ local function rename_file(file)
         ImGui.OpenPopup("Rename file")
     end
 
-    local change, opened = ImGui.BeginPopupModal("Rename file", ImGui.Flags.Window{"AlwaysAutoResize"})
+    local change = ImGui.BeginPopupModal("Rename file", nil, ImGui.Flags.Window{"AlwaysAutoResize"})
     if change then
         ImGui.Text("new name :")
         ImGui.SameLine()
@@ -312,7 +306,7 @@ function m.show()
         return
     end
     
-    if ImGui.Begin("ResourceBrowser", ImGui.Flags.Window { "NoCollapse", "NoScrollbar", "NoClosed" }) then
+    if ImGui.Begin("ResourceBrowser", true, ImGui.Flags.Window { "NoCollapse", "NoScrollbar" }) then
         ImGui.PushStyleVar(ImGui.Enum.StyleVar.ItemSpacing, 0, 6)
         local relativePath
         if selected_folder[1]._value then
@@ -348,7 +342,7 @@ function m.show()
         ImGui.Separator()
         local filter_focus1 = false
         local filter_focuse2 = false
-        if ImGui.TableBegin("InspectorTable", 3, ImGui.Flags.Table {'Resizable', 'ScrollY'}) then
+        if ImGui.BeginTable("InspectorTable", 3, ImGui.Flags.Table {'Resizable', 'ScrollY'}) then
             ImGui.TableNextColumn()
             local child_width, child_height = ImGui.GetContentRegionAvail()
             ImGui.BeginChild("##ResourceBrowserDir", child_width, child_height)
@@ -416,7 +410,7 @@ function m.show()
                 for _, path in pairs(folder.dirs) do
                     pre_selectable(icons.ICON_FOLD, selected_file ~= path[1])
                     pre_init_item_height()
-                    if ImGui.Selectable(tostring(path[1]:filename()), selected_file == path[1], 0, 0, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
+                    if ImGui.Selectable(tostring(path[1]:filename()), selected_file == path[1], ImGui.Flags.Selectable {"AllowDoubleClick"}) then
                         selected_file = path[1]
                         current_filter_key = 1
                         if ImGui.IsMouseDoubleClicked(0) then
@@ -432,12 +426,12 @@ function m.show()
                 for _, path in pairs(folder.files) do
                     pre_selectable(icons:get_file_icon(tostring(path)), selected_file ~= path)
                     pre_init_item_height()
-                    if ImGui.Selectable(tostring(path:filename()), selected_file == path, 0, 0, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
+                    if ImGui.Selectable(tostring(path:filename()), selected_file == path, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
                         selected_file = path
                         current_filter_key = 1
                         if ImGui.IsMouseDoubleClicked(0) then
                             local isprefab = path:equal_extension(".prefab")
-                            if path:equal_extension(".glb") or path:equal_extension(".fbx") or isprefab then
+                            if path:equal_extension(".gltf") or path:equal_extension(".glb") or path:equal_extension(".fbx") or isprefab then
                                 world:pub {"OpenFile", tostring(path), isprefab}
                             elseif path:equal_extension ".material" then
                                 local me = ecs.require "widget.material_editor"
@@ -472,6 +466,7 @@ function m.show()
                         or path:equal_extension(".dds")
                         or path:equal_extension(".prefab")
                         or path:equal_extension(".glb")
+                        or path:equal_extension(".gltf")
                         or path:equal_extension(".efk")
                         or path:equal_extension(".lua") then
                         if ImGui.BeginDragDropSource() then
@@ -521,7 +516,7 @@ function m.show()
                 end
             end
             ImGui.EndChild()
-        ImGui.TableEnd()
+        ImGui.EndTable()
         end
         global_data.camera_lock = filter_focus1 or filter_focuse2
     end

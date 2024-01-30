@@ -3,6 +3,7 @@ local serialize         = import_package "ant.serialize"
 local lfs               = require "bee.filesystem"
 local material_compile  = require "material.compile"
 local L                 = import_package "ant.render.core".layout
+local depends           = require "depends"
 
 local function create_entity(status, t, prefabs)
     if t.parent then
@@ -317,10 +318,24 @@ local function serialize_prefab(status, data)
     return data
 end
 
+local function compile_animation(status, skeleton, name, file)
+    if not lfs.path(file):equal_extension ".anim" then
+        return serialize_path(file)
+    end
+    local anim2ozz = require "model.anim2ozz"
+    local vfs_fastio = require "vfs_fastio"
+    local loc_fastio = require "fastio"
+    local skecontent = skeleton:sub(1,1) == "/"
+         and vfs_fastio.readall_f(status.setting, skeleton)
+         or loc_fastio.readall_f((status.output / "animations" / skeleton):string())
+    depends.add_vpath(status.depfiles, status.setting, file)
+    anim2ozz(status.setting, skecontent, file, (status.output / "animations" / (name..".bin")):string())
+    return serialize.path(name..".bin")
+end
+
 return function (status)
-    local glbdata = status.glbdata
     local math3d = status.math3d
-    local gltfscene = glbdata.info
+    local gltfscene = status.gltfscene
     local sceneidx = gltfscene.scene or 0
     local scene = gltfscene.scenes[sceneidx+1]
 
@@ -375,17 +390,27 @@ return function (status)
         end
 
         if suffix and (not status.animation) then
-            for _, e in ipairs(prefabs) do
-                if e and e.data.mesh then
-                    e.policy[#e.policy+1] = "ant.render|draw_indirect"
-                    e.data.draw_indirect = {
-                        instance_buffer = {
-                            flag    = "ra",
-                            layout  = "t45NIf|t46NIf|t47NIf",
-                            num     = 0,
-                            params  = {},
+            if not status.animation then
+                for _, e in ipairs(prefabs) do
+                    if e and e.data.mesh then
+                        e.policy[#e.policy+1] = "ant.render|draw_indirect"
+                        e.data.draw_indirect = {
+                            instance_buffer = {
+                                flag    = "ra",
+                                layout  = "t45NIf|t46NIf|t47NIf",
+                                num     = 0,
+                                params  = {},
+                            }
                         }
-                    }
+                    end
+                end 
+            end
+            for _, patchs in pairs(status.patch) do
+                for _, patch in ipairs(patchs) do
+                    local v = patch.value
+                    if type(v) == "table" and v.mount and v.prefab then
+                        v.prefab = v.prefab:gsub("(%.[^%.]+)$", "_di%1")
+                    end
                 end
             end
         end
@@ -413,12 +438,12 @@ return function (status)
 
     if status.animation then
         utility.save_txt_file(status, "animations/animation.ozz", status.animation, function (t)
-            if t.animations then
-                for name, file in pairs(t.animations) do
-                    t.animations[name] = serialize_path(file)
-                end
-            end
             if t.skeleton then
+                if t.animations then
+                    for name, file in pairs(t.animations) do
+                        t.animations[name] = compile_animation(status, t.skeleton, name, file)
+                    end
+                end
                 t.skeleton = serialize_path(t.skeleton)
             end
             if t.meshskin then

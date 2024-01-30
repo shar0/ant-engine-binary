@@ -14,6 +14,9 @@ local m = ecs.system "main_system"
 local entities
 
 function m:init_world()
+    world:create_instance {
+        prefab = "/pkg/ant.test.simple/resource/light.prefab"
+    }
     local prefab = world:create_instance {
         prefab = "/pkg/ant.test.simple/resource/miner-1.glb|mesh.prefab",
         on_ready = function ()
@@ -29,7 +32,7 @@ function m:init_world()
 end
 
 function m:data_changed()
-    if ImGui.Begin("entities", ImGui.Flags.Window {"AlwaysAutoResize", "NoMove", "NoTitleBar"}) then
+    if ImGui.Begin("entities", nil, ImGui.Flags.Window {"AlwaysAutoResize", "NoMove", "NoTitleBar"}) then
         local animation_eid
         if ImGui.TreeNode "mesh" then
             for i = 1, #entities do
@@ -77,7 +80,7 @@ function m:data_changed()
                     do
                         local value = {
                             [1] = status.speed and math.floor(status.speed*100) or 100,
-                            min = 0,
+                            min = -500,
                             max = 500,
                             format = "%d%%"
                         }

@@ -9,19 +9,20 @@ local mathpkg       = import_package"ant.math"
 local mc            = mathpkg.constant
 
 local common = ecs.require "common"
-common.init_system = "shadow"
+common.init_system = "point_light"
 
 local create_instance = ecs.require "util".create_instance
 
 local init_loader_sys   = ecs.system 'init_system'
 
 function init_loader_sys:init()
-    create_instance "/pkg/ant.test.features/assets/entities/light.prefab"
+    --create_instance "/pkg/ant.test.features/assets/entities/directional_light.prefab"
+    create_instance "/pkg/ant.test.features/assets/entities/sky_with_ibl.prefab"
 end
 
 local function init_camera()
     local mq = w:first "main_queue camera_ref:in"
-    local eyepos = math3d.vector(0, 5, -5)
+    local eyepos = math3d.vector(0, 10, -10)
     local camera_ref<close> = world:entity(mq.camera_ref)
     iom.set_position(camera_ref, eyepos)
     local dir = math3d.normalize(math3d.sub(mc.ZERO_PT, eyepos))
@@ -30,7 +31,9 @@ end
 
 local function init_light()
     local dl = w:first "directional_light scene:update"
-    iom.set_direction(dl, math3d.vector(0.0, -1.0, 0.0, 0.0))
+    --iom.set_direction(dl, math3d.vector(0.0, -1.0, 0.0, 0.0))
+    --rotate x-axis pi/2, y-axis pi/2
+    iom.set_rotation(dl, math3d.quaternion{math.pi*0.75, math.pi*0.25, 0.0})
     w:submit(dl)
 end
 

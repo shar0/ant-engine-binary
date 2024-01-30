@@ -19,9 +19,15 @@ local function get_layout(name, accessor)
 		shorttype)
 end
 
-local function attrib_data(desc, iv, bin)
+local function attrib_data(desc, iv, buffers)
+	local b = buffers[desc.bidx+1]
+	local bin = b.bin
 	local buf_offset = desc.bv + iv * desc.stride + desc.acc
-	return bin:sub(buf_offset+1, buf_offset+desc.size)
+	assert(buf_offset < b.byteLength)
+	local e = buf_offset+desc.size
+	assert(e <= b.byteLength)
+	local s = buf_offset+1
+	return bin:sub(s, e)
 end
 
 local function to_ib(indexbin, flag, count)
@@ -33,7 +39,8 @@ local function to_ib(indexbin, flag, count)
 	}
 end
 
- local function fetch_ib_buffer(gltfscene, gltfbin, index_accessor, ib_table)
+ local function fetch_ib_buffer(gltfscene, index_accessor, ib_table)
+	local buffers = gltfscene.buffers
 	local bufferViews = gltfscene.bufferViews
 
 	local bvidx = index_accessor.bufferView+1
@@ -51,7 +58,8 @@ end
 	local n = index_accessor.count
 	local size = n * elemsize
 
-	local indexbin = gltfbin:sub(offset+1, offset+size)
+	local buf = buffers[bv.buffer+1]
+	local indexbin = buf.bin:sub(offset+1, offset+size)
 	local num_triangles = n // 3
 
 	local buffer = {}
@@ -89,7 +97,7 @@ local function create_prim_bounding(math3d, meshscene, prim)
 	end
 end
 
-local function fetch_skininfo(gltfscene, skin, bindata)
+local function fetch_skininfo(gltfscene, skin)
 	local ibm_idx 	= skin.inverseBindMatrices
 	local ibm 		= gltfscene.accessors[ibm_idx+1]
 	local ibm_bv 	= gltfscene.bufferViews[ibm.bufferView+1]
@@ -100,8 +108,9 @@ local function fetch_skininfo(gltfscene, skin, bindata)
 	for i = 1, #joints do
 		jointsbin[i] = string.pack("<I2", joints[i])
 	end
+	local buf = gltfscene.buffers[ibm_bv.buffer+1]
 	return {
-		inverse_bind_matrices = bindata:sub(start_offset, end_offset-1),
+		inverse_bind_matrices = buf.bin:sub(start_offset, end_offset-1),
 		joints = table.concat(jointsbin),
 	}
 end
@@ -281,8 +290,8 @@ local function calc_tangents(math3d, ib, vb_num, vertices, layouts, store)
 	end
 end
 
-local function r2l_buf(d, iv, gltfbin)
-	local v = attrib_data(d, iv, gltfbin)
+local function r2l_buf(d, iv, gltfbuffers)
+	local v = attrib_data(d, iv, gltfbuffers)
 	return r2l_vec(v, d.layout)
 end
 
@@ -301,9 +310,9 @@ local function generate_layouts(gltfscene, attributes)
 	for _, attribname in ipairs(meshutil.LAYOUT_NAMES) do
 		local accidx = attributes[attribname]
 		if accidx then
-			local acc = accessors[accidx+1]
-			local bvidx = acc.bufferView+1
-			local bv = bufferViews[bvidx]
+			local acc 	= accessors[accidx+1]
+			local bvidx	= acc.bufferView+1
+			local bv	= bufferViews[bvidx]
 			local elemsize = gltfutil.accessor_elemsize(acc)
 			local layout = get_layout(attribname, accessors[accidx+1])
 			local layouttype = layout:sub(1, 1)
@@ -312,6 +321,7 @@ local function generate_layouts(gltfscene, attributes)
 				layout 	= layout,
 				acc		= acc.byteOffset or 0,
 			 	bv		= bv.byteOffset or 0,
+				bidx	= assert(bv.buffer),
 				size	= elemsize,
 			 	stride	= bv.byteStride or elemsize,
 				fetch_buf = is_vec_attrib(layouttype) and r2l_buf or attrib_data,
@@ -327,12 +337,12 @@ local function generate_layouts(gltfscene, attributes)
 	return layouts1, layouts2
 end
 
-local function fetch_vertices(layouts, gltfbin, numv, reverse_wing_order)
+local function fetch_vertices(layouts, gltfbuffers, numv, reverse_wing_order)
 	local vertices = {}
 	for iv=0, numv-1 do
 		local v = {}
 		for _, l in ipairs(layouts) do
-			v[#v+1] = l:fetch_buf(iv, gltfbin)
+			v[#v+1] = l:fetch_buf(iv, gltfbuffers)
 		end
 		vertices[#vertices+1] = v
 	end
@@ -347,7 +357,8 @@ local function fetch_vertices(layouts, gltfbin, numv, reverse_wing_order)
 	return vertices
 end
 
-local function fetch_vb_buffers(math3d, gltfscene, gltfbin, prim, ib_table, meshexport)
+local function fetch_vb_buffers(math3d, gltfscene, prim, ib_table, meshexport)
+	local gltfbuffers = gltfscene.buffers
 	assert(prim.mode == nil or prim.mode == 4)
 	local numv = gltfutil.num_vertices(prim, gltfscene)
 
@@ -364,11 +375,11 @@ local function fetch_vb_buffers(math3d, gltfscene, gltfbin, prim, ib_table, mesh
 
 	local layouts1, layouts2 = generate_layouts(gltfscene, prim.attributes)
 
-	local vertices1 = fetch_vertices(layouts1, gltfbin, numv, ib_table == nil)
+	local vertices1 = fetch_vertices(layouts1, gltfbuffers, numv, ib_table == nil)
 	if need_calc_tangent(layouts1, layouts2) then
 		local cp = math3d.checkpoint()
 		local tmp_layouts = {layouts1[find_layout_idx(layouts1, "POSITION")], layouts1[find_layout_idx(layouts1, "NORMAL")], layouts2[find_layout_idx(layouts2, "TEXCOORD_0")]}
-		local tmp_vertices = fetch_vertices(tmp_layouts, gltfbin, numv, ib_table == nil)
+		local tmp_vertices = fetch_vertices(tmp_layouts, gltfbuffers, numv, ib_table == nil)
 		calc_tangents(math3d, ib_table, #vertices1, tmp_vertices, tmp_layouts,
 		function (iv, v)
 			local vv = vertices1[iv]
@@ -388,7 +399,7 @@ local function fetch_vb_buffers(math3d, gltfscene, gltfbin, prim, ib_table, mesh
 
 	local vb2
 	if #layouts2 ~= 0 then
-		local vertices2 = fetch_vertices(layouts2, gltfbin, numv, ib_table == nil)
+		local vertices2 = fetch_vertices(layouts2, gltfbuffers, numv, ib_table == nil)
 		vb2 = get_vb(layouts2, vertices2)
 	end
 	return vb, vb2
@@ -450,7 +461,8 @@ local function redirect_skin_joints(gltfscene, skin, joint_index, scenetree, joi
 	return joint_index
 end
 
-local function export_skinbin(status, gltfscene, bindata)
+local function export_skinbin(status)
+	local gltfscene = status.gltfscene
 	status.skin = {}
 	local skins = gltfscene.skins
 	if skins == nil then
@@ -463,7 +475,7 @@ local function export_skinbin(status, gltfscene, bindata)
 		joint_index = redirect_skin_joints(gltfscene, skin, joint_index, status.scenetree, joint_trees)
 		local skinname = get_obj_name(skin, skinidx, "skin")
 		local resname = skinname .. ".skinbin"
-		utility.save_bin_file(status, "animations/"..resname, fetch_skininfo(gltfscene, skin, bindata))
+		utility.save_bin_file(status, "animations/"..resname, fetch_skininfo(gltfscene, skin))
 		status.skin[skinidx] = resname
 	end
 
@@ -563,7 +575,8 @@ local function save_meshbin_files(status, resname, meshgroup)
 end
 
 
- local function export_meshbin(status, gltfscene, bindata)
+ local function export_meshbin(status)
+	local gltfscene = status.gltfscene
 	local math3d = status.math3d
 	status.mesh = {}
 	local meshes = gltfscene.meshes
@@ -578,11 +591,11 @@ end
 			local group = {}
 			local indices_accidx = prim.indices
 			if indices_accidx then
-				group.ib = fetch_ib_buffer(gltfscene, bindata, gltfscene.accessors[indices_accidx+1], ib_table)
+				group.ib = fetch_ib_buffer(gltfscene, gltfscene.accessors[indices_accidx+1], ib_table)
 			end
 
 			local meshexport = {}
-			group.vb, group.vb2 = fetch_vb_buffers(math3d, gltfscene, bindata, prim, ib_table, meshexport)
+			group.vb, group.vb2 = fetch_vb_buffers(math3d, gltfscene, prim, ib_table, meshexport)
 			local bb = create_prim_bounding(math3d, gltfscene, prim)
 			if bb then
 				local aabb = math3d.aabb(bb.aabb[1], bb.aabb[2])
@@ -640,7 +653,6 @@ end
 end ]]
 
 return function (status)
-	local glbdata = status.glbdata
-	export_meshbin(status, glbdata.info, glbdata.bin)
-	export_skinbin(status, glbdata.info, glbdata.bin)
+	export_meshbin(status)
+	export_skinbin(status)
 end

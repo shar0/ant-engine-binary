@@ -1,7 +1,6 @@
 local ecs = ...
 local world = ecs.world
-local vfs       = require "vfs"
-local lfs       = require "bee.filesystem"
+local fs        = require "filesystem"
 local fastio    = require "fastio"
 local iani      = ecs.require "ant.anim_ctrl|state_machine"
 local ivs       = ecs.require "ant.render|visible_state"
@@ -65,13 +64,15 @@ end
 local datalist = require "datalist"
 local function get_action_list(asset_path)
     local al = {}
+    local tl = {}
     if asset_path and asset_path ~= '' then
         local animlist = datalist.parse(fastio.readall_f(global_data.project_root:string()..asset_path))
         for _, anim in ipairs(animlist) do
             al[#al + 1] = anim.name
+            tl[anim.name] = anim.type
         end
     end
-    return al
+    return al, tl
 end
 
 local function do_to_runtime_event(evs)
@@ -93,6 +94,9 @@ local function do_to_runtime_event(evs)
 end
 
 local function to_runtime_event(ke)
+    if not ke then
+        return {}
+    end
     local temp = {}
     for key, value in pairs(ke) do
         if #value > 0 then
@@ -112,10 +116,6 @@ local function to_runtime_event(ke)
 end
 
 local function anim_group_delete(anim_name)
-    local info = hierarchy:get_node_info(anim_eid)
-    local td = info.template.data
-    local animation_map = td.animation
-    animation_map[anim_name] = nil
     local e <close> = world:entity(anim_eid, "animation:in")
     e.animation.status[anim_name] = nil
     prefab_mgr:on_patch_animation(anim_eid, anim_name)
@@ -131,7 +131,7 @@ local function from_runtime_event(runtime_event)
         for _, e in ipairs(ev.event_list) do
             if e.event_type == "Sound" or e.event_type == "Effect" or e.event_type == "Animation" then
                 e.asset_path_ui = {text = e.asset_path or ''}
-                e.action_list = get_action_list(e.asset_path)
+                e.action_list, e.action_type_map = get_action_list(e.asset_path)
                 if e.event_type == "Animation" then
                     e.target_ui = {text = e.target or ''}
                     e.forwards = e.forwards or false
@@ -147,22 +147,6 @@ local function from_runtime_event(runtime_event)
         ke[tostring(math.floor(ev.time * sample_ratio))] = ev.event_list
     end
     return ke
-end
-
-local function get_runtime_events()
-    if not current_clip then
-        return
-    end
-    return current_clip.key_event
-end
-
-local function set_event_dirty(num)
-    if not edit_timeline then
-        local e <close> = world:entity(anim_eid, "anim_ctrl:in")
-        iani.stop_effect(anim_eid)
-        e.anim_ctrl.keyframe_events[current_anim.name] = to_runtime_event(anim_key_event)
-    end
-    anim_state.event_dirty = num
 end
 
 local widget_utils  = require "widget.utils"
@@ -190,10 +174,9 @@ local function set_current_anim(anim_name)
     anim_state.duration = current_anim.duration
     current_event = nil
     current_event_index = 0
-    iani.play(anim_eid, {name = anim_name, loop = ui_loop[1], speed = ui_speed[1], manual = false})
+    iani.play(anim_eid, {name = anim_name, loop = ui_loop[1], speed = ui_speed[1]})
     iani.set_time(anim_eid, 0)
     iani.pause(anim_eid, not anim_state.is_playing)
-    set_event_dirty(-1)
     return true
 end
 
@@ -222,7 +205,6 @@ local function add_event(et)
     local event_list = anim_key_event[key]--anim_state.current_event_list
     event_list[#event_list + 1] = new_event
     current_event_index = #event_list
-    set_event_dirty(1)
 end
 
 local function delete_event(idx)
@@ -232,13 +214,11 @@ local function delete_event(idx)
     current_event       = nil
     current_event_index = 0
     table.remove(anim_state.current_event_list, idx)
-    set_event_dirty(1)
 end
 
 local function clear_event()
     anim_key_event[tostring(anim_state.selected_frame)] = {}
     anim_state.current_event_list = anim_key_event[tostring(anim_state.selected_frame)]
-    set_event_dirty(1)
 end
 
 local function show_events()
@@ -306,12 +286,11 @@ local function show_current_event()
                         break;
                     end
                 end
-                local files = access.list_files(global_data.repo, bank_path)
                 local bank_files = {
                     bank_path .. "Master.strings.bank",
                     bank_path .. "Master.bank"
                 }
-                for value in pairs(files) do
+                for value in fs.pairs(fs.path(bank_path)) do
                     if string.sub(value, -5) == ".bank" and (value ~= "Master.strings.bank") and (value ~= "Master.bank") then
                         bank_files[#bank_files + 1] = bank_path .. value
                     end
@@ -349,7 +328,7 @@ local function show_current_event()
         ImGui.Text("SoundEvent : " .. current_event.sound_event)
         ImGui.Separator();
         for _, se in ipairs(sound_event_name_list) do
-            if ImGui.Selectable(se, current_event.sound_event == se, 0, 0, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
+            if ImGui.Selectable(se, current_event.sound_event == se, ImGui.Flags.Selectable {"AllowDoubleClick"}) then
                 current_event.sound_event = se
                 if (ImGui.IsMouseDoubleClicked(0)) then
                     fmod.play(sound_event_list[se])
@@ -362,7 +341,7 @@ local function show_current_event()
         if current_event.event_type == "Animation" then
             local function update_asset_path(asset_path)
                 current_event.asset_path = tostring(current_event.asset_path_ui.text)
-                current_event.action_list = get_action_list(asset_path)
+                current_event.action_list, current_event.action_type_map = get_action_list(asset_path)
                 current_event.action = nil
                 current_event.target = nil
             end
@@ -380,12 +359,6 @@ local function show_current_event()
                     update_asset_path(tostring(current_event.asset_path_ui.text))
                     dirty = true
                 end
-                -- ImGui.PropertyLabel("ActionTarget")
-                -- if ImGui.InputText("##ActionTarget", current_event.target_ui) then
-                --     current_event.target = tostring(current_event.target_ui.text)
-                --     dirty = true
-                -- end
-                
             end
             action_list = current_event.action_list or {}
         end
@@ -407,7 +380,8 @@ local function show_current_event()
             local target = current_event.target or ''
             ImGui.PropertyLabel("Target")
             if ImGui.BeginCombo("##Target", {target, flags = ImGui.Flags.Combo {}}) then
-                for _, name in ipairs(prefab_mgr.srt_mtl_list) do
+                local namelist = (current_event.action_type_map[current_event.action] == "mtl") and prefab_mgr.mtl_list or prefab_mgr.srt_mtl_list
+                for _, name in ipairs(namelist) do
                     if ImGui.Selectable(name, target == name) then
                         current_event.target = name
                     end
@@ -435,23 +409,9 @@ local function show_current_event()
             dirty = true
         end
     end
-    if dirty then
-        set_event_dirty(1)
-    end
 end
 
 function m.on_remove_entity(eid)
-    local dirty = false
-    local e <close> = world:entity(eid, "slot?in")
-    if e.slot and anim_eid then
-        local ae <close> = world:entity(anim_eid, "anim_ctrl?in")
-        local tpl = hierarchy:get_node_info(eid).template
-        local name = tpl.tag and tpl.tag[1] or ''
-        ae.anim_ctrl.slot_eid[name] = nil
-    end
-    if dirty then
-        set_event_dirty(-1)
-    end
 end
 
 local function on_move_keyframe(frame_idx, move_type)
@@ -474,7 +434,6 @@ local function on_move_keyframe(frame_idx, move_type)
         current_event = nil
         current_event_index = 0
     end
-    set_event_dirty(-1)
 end
 local function min_max_range_value(clip_index)
     return 0, math.ceil(current_anim.duration * sample_ratio) - 1
@@ -544,7 +503,6 @@ function m.save_keyevent()
         end
     end
     if next(revent) then
-        --local prefab_filename = filename or prefab_mgr:get_current_filename():sub(1, -8) .. ".event"
         if not event_filename then
             event_filename = widget_utils.get_saveas_path("Save AnimationEvent", "event")
         end
@@ -624,17 +582,6 @@ function m.get_title()
 end
 
 function m.show()
-    for _ in update_slot_list:unpack() do
-        if anim_eid then
-            local slotlist = {}
-            for name, eid in pairs(hierarchy.slot_list) do
-                slotlist[name] = eid
-            end
-            local e <close> = world:entity(anim_eid, "anim_ctrl:in")
-            e.anim_ctrl.slot_eid = slotlist
-            break
-        end
-    end
     for _, action, path in event_keyframe:unpack() do
         if action == "effect" then
             if not effect_map[path] then
@@ -652,7 +599,7 @@ function m.show()
     local viewport = ImGui.GetMainViewport()
     ImGui.SetNextWindowPos(viewport.WorkPos[1], viewport.WorkPos[2] + viewport.WorkSize[2] - uiconfig.BottomWidgetHeight, 'F')
     ImGui.SetNextWindowSize(viewport.WorkSize[1], uiconfig.BottomWidgetHeight, 'F')
-    if ImGui.Begin("Animation", ImGui.Flags.Window { "NoCollapse", "NoScrollbar", "NoClosed" }) then
+    if ImGui.Begin("Animation", true, ImGui.Flags.Window { "NoCollapse", "NoScrollbar" }) then
         if (not current_anim or not anim_eid) and not edit_timeline then
             goto continue
         end
@@ -696,7 +643,7 @@ function m.show()
                 anim_path_ui.text = ''
                 ImGui.OpenPopup(title)
             end
-            local change, opened = ImGui.BeginPopupModal(title, ImGui.Flags.Window{"AlwaysAutoResize"})
+            local change = ImGui.BeginPopupModal(title, nil, ImGui.Flags.Window{"AlwaysAutoResize"})
             if change then
                 ImGui.Text("Anim Name:")
                 ImGui.SameLine()
@@ -708,7 +655,7 @@ function m.show()
                 end
                 ImGui.SameLine()
                 if ImGui.Button("...") then
-                    local localpath = uiutils.get_open_file_path("Select Animation", "bin")
+                    local localpath = uiutils.get_open_file_path("Select Animation", "anim")
                     if localpath then
                         anim_path_ui.text = access.virtualpath(global_data.repo, localpath)
                     end
@@ -763,7 +710,7 @@ function m.show()
                 if anim_state.is_playing then
                     iani.pause(anim_eid, true)
                 else
-                    iani.play(anim_eid, {name = current_anim.name, loop = ui_loop[1], speed = ui_speed[1], manual = false})
+                    iani.play(anim_eid, {name = current_anim.name, loop = ui_loop[1], speed = ui_speed[1]})
                 end
             else
                 play_timeline()
@@ -847,12 +794,12 @@ function m.show()
             on_move_clip(move_type, anim_state.selected_clip_index, move_delta)
         end
         ImGui.Separator()
-        if ImGui.TableBegin("EventColumns", edit_timeline and 2 or 3, ImGui.Flags.Table {'Resizable', 'ScrollY'}) then
+        if ImGui.BeginTable("EventColumns", edit_timeline and 2 or 3, ImGui.Flags.Table {'Resizable', 'ScrollY'}) then
             if not edit_timeline then
-                ImGui.TableSetupColumn("Bones", ImGui.Flags.TableColumn {'WidthStretch'}, 1.0)
+                ImGui.TableSetupColumnEx("Bones", ImGui.Flags.TableColumn {'WidthStretch'}, 1.0)
             end
-            ImGui.TableSetupColumn("Event", ImGui.Flags.TableColumn {'WidthStretch'}, 1.0)
-            ImGui.TableSetupColumn("Event(Detail)", ImGui.Flags.TableColumn {'WidthStretch'}, 2.0)
+            ImGui.TableSetupColumnEx("Event", ImGui.Flags.TableColumn {'WidthStretch'}, 1.0)
+            ImGui.TableSetupColumnEx("Event(Detail)", ImGui.Flags.TableColumn {'WidthStretch'}, 2.0)
             ImGui.TableHeadersRow()
             local child_width, child_height
             if not edit_timeline then
@@ -873,7 +820,7 @@ function m.show()
             ImGui.BeginChild("##show_current_event", child_width, child_height)
             show_current_event()
             ImGui.EndChild()
-            ImGui.TableEnd()
+            ImGui.EndTable()
         end
         ::continue::
     end
@@ -890,29 +837,17 @@ function m.on_prefab_load(eid)
     end
     local editanims = {dirty = true, name_list = {} }
     local skeleton
-    local e <close> = world:entity(eid, "anim_ctrl?in animation?in")
-    if e.anim_ctrl then
+    local e <close> = world:entity(eid, "animation?in")
+    if e.animation then
         anim_eid = eid
-        local prefab_filename = prefab_mgr:get_current_filename()
-        local path_list = utils.split_ant_path(prefab_filename)
-        if path_list[1] then
-            --xxx.glb
-            iani.load_events(eid, string.sub(path_list[1], 1, -5) .. ".event")
-        else
-            ---xxx.prefab
-            iani.load_events(eid, string.sub(prefab_filename, 1, -8) .. ".event")
-        end
-        
         local animations = e.animation.status
         if animations then
             skeleton = e.animation.skeleton
             for key, status in pairs(e.animation.status) do
                 if not editanims[key] then
-                    local events = e.anim_ctrl.keyframe_events[key]
                     editanims[key] = {
                         name = key,
                         duration = status.handle:duration(),
-                        key_event = events and from_runtime_event(events) or {},
                     }
                     editanims.name_list[#editanims.name_list + 1] = key
                 end
@@ -959,7 +894,6 @@ function m.on_target(eid)
         anim_key_event = current_timeline.key_event
         anim_state.duration = current_timeline.duration
         anim_state.current_frame = 0
-        set_event_dirty(-1)
     elseif current_anim then
         anim_state.anim_name = current_anim.name
         anim_state.key_event = current_anim.key_event
@@ -967,7 +901,6 @@ function m.on_target(eid)
         anim_state.duration = current_anim.duration
         anim_state.current_frame = 0
         edit_anims.dirty = true
-        set_event_dirty(-1)
     end
 end
 

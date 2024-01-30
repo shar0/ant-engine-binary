@@ -1,7 +1,7 @@
 local ecs   = ...
 local world = ecs.world
 local w     = world.w
-
+local platform     = require "bee.platform"
 local mathpkg   = import_package "ant.math"
 local mu        = mathpkg.util
 
@@ -36,7 +36,7 @@ function m.show()
             if not drag_file then
                 local dropdata = ImGui.GetDragDropPayload()
                 if dropdata and (string.sub(dropdata, -7) == ".prefab"
-                    or string.sub(dropdata, -4) == ".efk" or string.sub(dropdata, -4) == ".glb") then
+                    or string.sub(dropdata, -4) == ".efk" or string.sub(dropdata, -4) == ".glb" or string.sub(dropdata, -5) == ".gltf") then
                     drag_file = dropdata
                 end
             end
@@ -59,7 +59,7 @@ function m.show()
 	ImGui.PushStyleVar(ImGui.Enum.StyleVar.WindowRounding, 0.0);
 	ImGui.PushStyleVar(ImGui.Enum.StyleVar.WindowBorderSize, 0.0);
     ImGui.PushStyleVar(ImGui.Enum.StyleVar.WindowPadding, 0.0, 0.0);
-    if ImGui.Begin("MainView", ImGui.Flags.Window {
+    if ImGui.Begin("MainView", nil, ImGui.Flags.Window {
         "NoDocking",
         "NoTitleBar",
         "NoCollapse",
@@ -79,10 +79,14 @@ function m.show()
         x, y = x - mp[1], y - mp[2]
         local vp = iviewport.device_size
         if x ~= vp.x or y ~= vp.y or ww ~= vp.w or hh ~= vp.h then
-            vp.x = x * imgui_vp.DpiScale
-            vp.y = y * imgui_vp.DpiScale
-            vp.w = ww * imgui_vp.DpiScale
-            vp.h = hh * imgui_vp.DpiScale
+            if platform.os == "macos" then
+                vp.x = x * imgui_vp.DpiScale
+                vp.y = y * imgui_vp.DpiScale
+                vp.w = ww * imgui_vp.DpiScale
+                vp.h = hh * imgui_vp.DpiScale
+            else
+                vp.x, vp.y, vp.w, vp.h = x, y, ww, hh
+            end
             world:dispatch_message {
                 type = "set_viewport",
                 viewport = vp,
